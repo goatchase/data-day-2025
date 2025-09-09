@@ -8,7 +8,7 @@
   <style>
     body {
       font-family: 'Roboto', sans-serif;
-      background: #f5f5f5;
+      background: #fff; /* entire page white */
       margin: 0;
       padding: 10px;
       text-align: center;
@@ -25,11 +25,11 @@
       margin: auto;
       overflow-x: auto;
       overflow-y: auto;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      background: #fff; /* container also white */
+      border-radius: 0; /* optional: remove rounded edges for fully sheet-like look */
+      box-shadow: none; /* optional: remove shadow */
       padding: 5px;
-      max-height: 90vh; /* allow vertical scrolling */
+      max-height: 90vh; 
     }
 
     table {
@@ -37,6 +37,7 @@
       width: 100%;
       table-layout: fixed;
       font-size: 1rem;
+      background: #fff; /* table white */
     }
 
     th, td {
@@ -44,6 +45,7 @@
       word-break: break-word;
       padding: 1px 2px;
       height: 15px;
+      background: #fff; /* cells white */
     }
 
     th {
