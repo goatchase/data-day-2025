@@ -15,44 +15,34 @@
       text-align: center;
     }
 
-    h1 {
-      color: #fff;
-      background: linear-gradient(90deg, #4caf50, #2196f3);
-      padding: 12px 0;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      font-size: 1.5rem;
-    }
-
     .sheet-container {
       width: 100%;
       margin: auto;
-      border-radius: 8px;
       overflow-x: auto;
-      overflow-y: hidden;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
       background: #fff;
       padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     table {
       border-collapse: collapse;
       width: 100%;
-      table-layout: fixed;
-      word-wrap: break-word;
+      table-layout: auto; /* allow smaller columns */
+      font-size: 0.9rem; /* will be scaled dynamically */
     }
 
     th, td {
-      border: 1px solid #ccc;
-      padding: 6px 8px;
+      padding: 6px 10px;
       text-align: left;
+      border-bottom: 1px solid #e0e0e0; /* subtle line instead of full grid */
     }
 
     th {
-      background-color: #f0f0f0;
+      background-color: #f9f9f9;
       position: sticky;
       top: 0;
-      z-index: 1;
+      font-weight: 500;
     }
 
     tr:nth-child(even) {
@@ -61,7 +51,6 @@
   </style>
 </head>
 <body>
-  <h1>📊 Data Day Twenty Twenty Five</h1>
   <div class="sheet-container">
     <table id="sheet-table">
       <thead></thead>
@@ -109,8 +98,8 @@
       const rows = table.rows.length;
       if (rows === 0) return;
 
-      const containerHeight = window.innerHeight - container.offsetTop - 20; // 20px padding
-      const newFontSize = Math.floor(containerHeight / rows * 0.7); // scale factor 0.7
+      const containerHeight = window.innerHeight - container.offsetTop - 20; 
+      const newFontSize = Math.floor(containerHeight / rows * 0.9); // bigger font
       table.style.fontSize = newFontSize + "px";
     }
 
