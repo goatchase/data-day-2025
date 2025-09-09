@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gradient Sheet Table</title>
+  <title>2025 Data Day Scores</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <style>
     body {
@@ -11,16 +11,25 @@
       background: #f5f5f5;
       margin: 0;
       padding: 10px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 10px 0;
+      font-size: 1.8rem;
+      color: #333;
     }
 
     .sheet-container {
       width: 100%;
       margin: auto;
       overflow-x: auto;
+      overflow-y: auto;
       background: #fff;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       padding: 5px;
+      max-height: 90vh; /* allow vertical scrolling */
     }
 
     table {
@@ -51,18 +60,32 @@
       width: 15px;
     }
 
-    /* second column bold and slightly larger */
-    td:nth-child(2) {
+    /* second column bold and slightly larger, but only after first 2 rows */
+    tbody tr:nth-child(n+3) td:nth-child(2) {
       font-weight: 500;
       font-size: 1.2em;
     }
 
-    tbody tr:hover td {
+    /* optional hover effect */
+    tbody tr:nth-child(n+3):hover td {
       background-color: #f2f2f2;
+    }
+
+    /* freeze first two rows */
+    tbody tr:nth-child(1),
+    tbody tr:nth-child(2) {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 2;
+    }
+    tbody tr:nth-child(2) {
+      top: 15px; /* height of first row */
     }
   </style>
 </head>
 <body>
+  <h1>2025 DATA DAY SCORES</h1>
   <div class="sheet-container">
     <table id="sheet-table">
       <thead></thead>
@@ -90,11 +113,10 @@
       const minVal = Math.min(...numbers);
       const maxVal = Math.max(...numbers);
 
-      // Function to map value to color
       function getColor(value) {
         const ratio = (value - minVal) / (maxVal - minVal);
-        const r = Math.floor(255 * ratio); // red increases
-        const g = Math.floor(255 * (1 - ratio)); // green decreases
+        const r = Math.floor(255 * ratio);
+        const g = Math.floor(255 * (1 - ratio));
         return `rgb(${r},${g},0)`;
       }
 
@@ -105,7 +127,7 @@
           const td = document.createElement("td");
           td.textContent = cell;
 
-          // Apply gradient color only for 6th row and every 4th after
+          // Apply gradient color only for rows starting with 6th and every 4th after
           if (rowIndex >= 5 && (rowIndex - 5) % 4 === 0) {
             const val = parseFloat(cell);
             if (!isNaN(val)) {
@@ -129,7 +151,7 @@
       const rows = table.rows.length;
       if (rows === 0) return;
 
-      const containerHeight = window.innerHeight - container.offsetTop - 20;
+      const containerHeight = window.innerHeight - container.offsetTop - 40; // account for title
       const newFontSize = Math.min(Math.floor(containerHeight / rows * 1.5), 24);
       table.style.fontSize = newFontSize + "px";
     }
