@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sheet-Like Table</title>
+  <title>Clean Sheet Table</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <style>
     body {
@@ -19,44 +19,35 @@
       overflow-x: auto;
       background: #fff;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       padding: 5px;
     }
 
     table {
       border-collapse: collapse;
       width: 100%;
-      table-layout: fixed; /* maintain column widths */
+      table-layout: fixed;
       font-size: 1rem; /* will scale dynamically */
     }
 
     th, td {
-      text-align: left;
-      padding: 4px 6px; /* less space to make text bigger */
+      padding: 2px 4px; /* minimal padding to maximize font */
+      text-align: center;
       word-break: break-word;
     }
 
     th {
-      background-color: #f0f0f0;
-      font-weight: 500;
-      position: sticky;
-      top: 0;
+      display: none; /* hide header for clean look */
     }
 
-    /* only the first column has bottom border between rows */
-    td:first-child {
-      border-bottom: 1px solid #ccc;
-      font-weight: 500;
-      width: 40px; /* adjust for row numbers */
-      text-align: center;
+    /* Single line every 4 rows starting with 3rd */
+    tbody tr:nth-child(4n+3) td {
+      border-bottom: 1px solid #000;
     }
 
-    tr:nth-child(even) td:not(:first-child) {
-      background-color: #fafafa; /* subtle striping */
-    }
-
-    tr:hover td:not(:first-child) {
-      background-color: #eef2f7; /* highlight row on hover */
+    /* Optional hover effect */
+    tbody tr:hover td {
+      background-color: #f2f2f2;
     }
   </style>
 </head>
@@ -75,25 +66,15 @@
       const text = await res.text();
 
       const rows = text.trim().split("\n").map(r => r.split(","));
-      const thead = document.querySelector("#sheet-table thead");
       const tbody = document.querySelector("#sheet-table tbody");
 
-      // Header
-      const headerRow = document.createElement("tr");
-      rows[0].forEach((cell, i) => {
-        const th = document.createElement("th");
-        th.textContent = cell;
-        if (i === 0) th.style.width = "40px"; // first column fixed width
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-
       // Body
-      rows.slice(1).forEach((row, rowIndex) => {
+      rows.forEach((row, rowIndex) => {
         const tr = document.createElement("tr");
         row.forEach((cell, i) => {
           const td = document.createElement("td");
           td.textContent = cell;
+          td.style.width = "50px"; // smaller columns
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
@@ -110,7 +91,7 @@
       if (rows === 0) return;
 
       const containerHeight = window.innerHeight - container.offsetTop - 20;
-      const newFontSize = Math.min(Math.floor(containerHeight / rows * 0.9), 20); // cap max size
+      const newFontSize = Math.min(Math.floor(containerHeight / rows * 0.9), 22); // max font
       table.style.fontSize = newFontSize + "px";
     }
 
