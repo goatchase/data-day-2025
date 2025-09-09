@@ -4,42 +4,48 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Public Sheet</title>
+  <!-- Roboto Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Roboto', Arial, sans-serif;
       background: #f5f5f5;
       margin: 0;
-      padding: 20px;
+      padding: 10px;
       text-align: center;
     }
 
     h1 {
       color: #fff;
       background: linear-gradient(90deg, #4caf50, #2196f3);
-      padding: 15px 0;
+      padding: 12px 0;
       border-radius: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
+      font-size: 1.5rem;
     }
 
     .sheet-container {
-      max-width: 95%;
+      width: 100%;
       margin: auto;
       border-radius: 8px;
-      overflow-x: auto; /* horizontal scroll if needed */
+      overflow-x: auto;
+      overflow-y: hidden;
       box-shadow: 0 2px 10px rgba(0,0,0,0.15);
       background: #fff;
-      padding: 20px;
+      padding: 10px;
     }
 
     table {
       border-collapse: collapse;
       width: 100%;
-      text-align: left;
+      table-layout: fixed;
+      word-wrap: break-word;
     }
 
     th, td {
       border: 1px solid #ccc;
-      padding: 8px 12px;
+      padding: 6px 8px;
+      text-align: left;
     }
 
     th {
@@ -65,7 +71,6 @@
 
   <script>
     async function loadSheet() {
-      // Replace with your CSV-published Google Sheet link
       const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
       const res = await fetch(url);
       const text = await res.text();
@@ -93,6 +98,20 @@
         });
         tbody.appendChild(tr);
       });
+
+      adjustFontSize();
+      window.addEventListener('resize', adjustFontSize);
+    }
+
+    function adjustFontSize() {
+      const table = document.getElementById("sheet-table");
+      const container = document.querySelector(".sheet-container");
+      const rows = table.rows.length;
+      if (rows === 0) return;
+
+      const containerHeight = window.innerHeight - container.offsetTop - 20; // 20px padding
+      const newFontSize = Math.floor(containerHeight / rows * 0.7); // scale factor 0.7
+      table.style.fontSize = newFontSize + "px";
     }
 
     loadSheet();
