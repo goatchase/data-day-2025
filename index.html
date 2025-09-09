@@ -26,15 +26,15 @@
     table {
       border-collapse: collapse;
       width: 100%;
-      table-layout: fixed; /* equal column widths */
-      font-size: 1rem; /* dynamic scaling */
+      table-layout: fixed;
+      font-size: 1rem; /* will scale dynamically */
     }
 
     th, td {
-      padding: 2px 4px; /* minimal padding */
       text-align: center;
       word-break: break-word;
-      height: 30px; /* uniform row height */
+      padding: 1px 2px; /* smaller padding to reduce row height */
+      height: 15px; /* half previous 30px */
     }
 
     th {
@@ -46,9 +46,9 @@
       border-bottom: 1px solid rgba(0,0,0,0.15);
     }
 
-    /* set all columns to same smaller width */
+    /* all columns same smaller width */
     td {
-      width: 25px; /* half the previous 50px */
+      width: 15px; /* smaller than before */
     }
 
     /* optional hover effect */
@@ -75,9 +75,9 @@
       const tbody = document.querySelector("#sheet-table tbody");
 
       // Body
-      rows.forEach((row, rowIndex) => {
+      rows.forEach(row => {
         const tr = document.createElement("tr");
-        row.forEach((cell, i) => {
+        row.forEach(cell => {
           const td = document.createElement("td");
           td.textContent = cell;
           tr.appendChild(td);
@@ -96,7 +96,7 @@
       if (rows === 0) return;
 
       const containerHeight = window.innerHeight - container.offsetTop - 20;
-      const newFontSize = Math.min(Math.floor(containerHeight / rows * 0.9), 22); // max font
+      const newFontSize = Math.min(Math.floor(containerHeight / rows * 1.5), 24); // larger font scaling
       table.style.fontSize = newFontSize + "px";
     }
 
