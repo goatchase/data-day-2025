@@ -26,26 +26,32 @@
     table {
       border-collapse: collapse;
       width: 100%;
-      table-layout: fixed;
-      font-size: 1rem; /* will scale dynamically */
+      table-layout: fixed; /* equal column widths */
+      font-size: 1rem; /* dynamic scaling */
     }
 
     th, td {
-      padding: 2px 4px; /* minimal padding to maximize font */
+      padding: 2px 4px; /* minimal padding */
       text-align: center;
       word-break: break-word;
+      height: 30px; /* uniform row height */
     }
 
     th {
       display: none; /* hide header for clean look */
     }
 
-    /* Single line every 4 rows starting with 3rd */
-    tbody tr:nth-child(4n+3) td {
-      border-bottom: 1px solid #000;
+    /* subtle horizontal line every 4 rows starting with 2nd row */
+    tbody tr:nth-child(4n+2) td {
+      border-bottom: 1px solid rgba(0,0,0,0.15);
     }
 
-    /* Optional hover effect */
+    /* set all columns to same smaller width */
+    td {
+      width: 25px; /* half the previous 50px */
+    }
+
+    /* optional hover effect */
     tbody tr:hover td {
       background-color: #f2f2f2;
     }
@@ -74,7 +80,6 @@
         row.forEach((cell, i) => {
           const td = document.createElement("td");
           td.textContent = cell;
-          td.style.width = "50px"; // smaller columns
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
