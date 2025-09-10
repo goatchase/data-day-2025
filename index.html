@@ -116,16 +116,16 @@ async function loadSheet() {
     tbody.appendChild(tr);
   });
 
-  // Compare Predictions (row 3) vs Actuals (row 4) for columns 3–18 by team only
-  const predRow = tbody.rows[2]; // row 3 (0-indexed)
-  const actualRow = tbody.rows[3]; // row 4
-  if (predRow && actualRow) {
-    for (let c = 2; c < 18; c++) { // Columns 3–18
-      const predTeam = predRow.cells[c].textContent.split(" ")[0];
-      const actualTeam = actualRow.cells[c].textContent.split(" ")[0];
-      if (predTeam && predTeam === actualTeam) {
-        predRow.cells[c].style.backgroundColor = "lightgreen";
-        actualRow.cells[c].style.backgroundColor = "lightgreen";
+  // Automatic comparison for all row pairs
+  for (let r = 0; r < tbody.rows.length - 1; r++) {
+    const row1 = tbody.rows[r];
+    const row2 = tbody.rows[r + 1];
+    for (let c = 2; c < Math.min(row1.cells.length, 18); c++) { // columns 3–18
+      const team1 = row1.cells[c].textContent.split(" ")[0];
+      const team2 = row2.cells[c].textContent.split(" ")[0];
+      if (team1 && team1 === team2) {
+        row1.cells[c].style.backgroundColor = "lightgreen";
+        row2.cells[c].style.backgroundColor = "lightgreen";
       }
     }
   }
