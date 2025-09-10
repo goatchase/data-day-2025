@@ -4,161 +4,121 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2025 Data Day Scores</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Roboto', sans-serif;
-      background: #fff; /* entire page white */
+      background: white;
       margin: 0;
-      padding: 10px;
-      text-align: center;
+      padding: 20px;
     }
 
     h1 {
-      margin: 10px 0;
-      font-size: 1.8rem;
-      color: #333;
+      text-align: center;
+      margin-bottom: 20px;
     }
 
-    .sheet-container {
+    .table-container {
       width: 100%;
-      margin: auto;
-      overflow-x: auto;
-      overflow-y: auto;
-      background: #fff; /* container also white */
-      border-radius: 0; /* optional: remove rounded edges for fully sheet-like look */
-      box-shadow: none; /* optional: remove shadow */
-      padding: 5px;
-      max-height: 90vh; 
+      overflow-x: auto; /* allow scroll on small screens */
     }
 
     table {
       border-collapse: collapse;
       width: 100%;
-      table-layout: fixed;
-      font-size: 1rem;
-      background: #fff; /* table white */
+      font-size: 18px;
     }
 
     th, td {
       text-align: center;
-      word-break: break-word;
-      padding: 1px 2px;
-      height: 15px;
-      background: #fff; /* cells white */
+      padding: 6px 8px;
+      width: 100px; /* uniform width */
     }
 
-    th {
-      display: none;
+    tr {
+      height: 30px; /* same height rows */
     }
 
-    /* subtle horizontal line every 4 rows starting with 6th row */
-    tbody tr:nth-child(4n+6) td {
-      border-bottom: 1px solid rgba(0,0,0,0.15);
+    /* single soft line every 4 rows starting at row 2 */
+    tr:nth-child(4n+2) {
+      border-bottom: 1px solid #ccc;
     }
 
-    /* all columns same smaller width */
-    td {
-      width: 15px;
+    /* gradient coloring every 4 rows starting at row 6 */
+    tr.gradient {
+      background: linear-gradient(to right, #4caf50, #ffeb3b, #f44336);
+      color: white;
     }
 
-    /* second column bold and slightly larger, but only after first 2 rows */
-    tbody tr:nth-child(n+3) td:nth-child(2) {
-      font-weight: 500;
-      font-size: 1.2em;
-    }
-
-    /* optional hover effect */
-    tbody tr:nth-child(n+3):hover td {
-      background-color: #f2f2f2;
-    }
-
-    /* freeze first two rows */
-    tbody tr:nth-child(1),
-    tbody tr:nth-child(2) {
+    /* Sticky header (first two rows) */
+    thead tr:nth-child(-n+2) {
       position: sticky;
       top: 0;
-      background: #fff;
+      background: white;
       z-index: 2;
     }
-    tbody tr:nth-child(2) {
-      top: 15px; /* height of first row */
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+      table {
+        font-size: 16px; /* adjust size */
+        width: max-content; /* prevent squishing, enable scroll */
+      }
     }
   </style>
 </head>
 <body>
-  <h1>2025 DATA DAY SCORES</h1>
-  <div class="sheet-container">
-    <table id="sheet-table">
-      <thead></thead>
-      <tbody></tbody>
+  <h1>2025 Data Day Scores</h1>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Score</th>
+          <th>Category</th>
+          <th>Division</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td><strong>John Doe</strong></td>
+          <td>95</td>
+          <td>A</td>
+          <td>West</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2</td>
+          <td><strong>Jane Smith</strong></td>
+          <td>88</td>
+          <td>B</td>
+          <td>East</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><strong>Mike Lee</strong></td>
+          <td>76</td>
+          <td>A</td>
+          <td>South</td>
+        </tr>
+        <tr class="gradient">
+          <td>4</td>
+          <td><strong>Chris Kim</strong></td>
+          <td>65</td>
+          <td>C</td>
+          <td>North</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><strong>Anna Brown</strong></td>
+          <td>82</td>
+          <td>B</td>
+          <td>West</td>
+        </tr>
+      </tbody>
     </table>
   </div>
-
-  <script>
-    async function loadSheet() {
-      const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
-      const res = await fetch(url);
-      const text = await res.text();
-
-      const rows = text.trim().split("\n").map(r => r.split(","));
-      const tbody = document.querySelector("#sheet-table tbody");
-
-      // Determine min and max of numeric values for gradient
-      let numbers = [];
-      rows.forEach(row => {
-        row.forEach(cell => {
-          const val = parseFloat(cell);
-          if (!isNaN(val)) numbers.push(val);
-        });
-      });
-      const minVal = Math.min(...numbers);
-      const maxVal = Math.max(...numbers);
-
-      function getColor(value) {
-        const ratio = (value - minVal) / (maxVal - minVal);
-        const r = Math.floor(255 * ratio);
-        const g = Math.floor(255 * (1 - ratio));
-        return `rgb(${r},${g},0)`;
-      }
-
-      // Populate table
-      rows.forEach((row, rowIndex) => {
-        const tr = document.createElement("tr");
-        row.forEach((cell, colIndex) => {
-          const td = document.createElement("td");
-          td.textContent = cell;
-
-          // Apply gradient color only for rows starting with 6th and every 4th after
-          if (rowIndex >= 5 && (rowIndex - 5) % 4 === 0) {
-            const val = parseFloat(cell);
-            if (!isNaN(val)) {
-              td.style.backgroundColor = getColor(val);
-              td.style.color = '#fff';
-            }
-          }
-
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-      });
-
-      adjustFontSize();
-      window.addEventListener('resize', adjustFontSize);
-    }
-
-    function adjustFontSize() {
-      const table = document.getElementById("sheet-table");
-      const container = document.querySelector(".sheet-container");
-      const rows = table.rows.length;
-      if (rows === 0) return;
-
-      const containerHeight = window.innerHeight - container.offsetTop - 40; // account for title
-      const newFontSize = Math.min(Math.floor(containerHeight / rows * 1.5), 24);
-      table.style.fontSize = newFontSize + "px";
-    }
-
-    loadSheet();
-  </script>
 </body>
 </html>
