@@ -23,13 +23,13 @@
     .sheet-container {
       width: 100%;
       margin: auto;
-      overflow-x: auto;
+      overflow-x: auto; /* horizontal scroll enabled */
       overflow-y: auto;
-      background: #fff; /* container also white */
-      border-radius: 0; /* optional: remove rounded edges for fully sheet-like look */
-      box-shadow: none; /* optional: remove shadow */
+      background: #fff;
+      border-radius: 0;
+      box-shadow: none;
       padding: 5px;
-      max-height: 90vh; 
+      max-height: 90vh;
     }
 
     table {
@@ -37,7 +37,8 @@
       width: 100%;
       table-layout: fixed;
       font-size: 1rem;
-      background: #fff; /* table white */
+      background: #fff;
+      min-width: 800px; /* ensures scroll on mobile instead of shrinking */
     }
 
     th, td {
@@ -45,7 +46,7 @@
       word-break: break-word;
       padding: 1px 2px;
       height: 15px;
-      background: #fff; /* cells white */
+      background: #fff;
     }
 
     th {
@@ -68,7 +69,7 @@
       font-size: 1.2em;
     }
 
-    /* optional hover effect */
+    /* hover effect */
     tbody tr:nth-child(n+3):hover td {
       background-color: #f2f2f2;
     }
@@ -83,6 +84,14 @@
     }
     tbody tr:nth-child(2) {
       top: 15px; /* height of first row */
+    }
+
+    /* mobile adjustments */
+    @media (max-width: 768px) {
+      table {
+        width: max-content; /* natural width */
+        min-width: unset;   /* allow scrolling instead of shrinking */
+      }
     }
   </style>
 </head>
