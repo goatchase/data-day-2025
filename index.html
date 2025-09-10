@@ -96,7 +96,7 @@ async function loadSheet() {
   }
 
   // Populate table
-  rows.forEach((row, rowIndex) => {
+  rows.forEach((row) => {
     const tr = document.createElement("tr");
     row.forEach(cell => {
       const td = document.createElement("td");
@@ -118,23 +118,23 @@ async function loadSheet() {
     });
   }
 
-  // Compare first row of each 4-row block with the row immediately below it (columns 3–18)
-  let i = 2; // start with row 3 (0-indexed)
+  // Compare first item: start at row 4 (Actuals) vs row 3 (Predictions)
+  let i = 3; // row 4 (0-indexed)
   while (i < tbody.rows.length) {
-    const firstRow = tbody.rows[i];
-    const secondRow = tbody.rows[i + 1];
-    if (!firstRow || !secondRow) break;
+    const currentRow = tbody.rows[i];       // Actuals
+    const previousRow = tbody.rows[i - 1];  // Predictions
+    if (!currentRow || !previousRow) break;
 
-    for (let c = 2; c < Math.min(firstRow.cells.length, 18); c++) { // columns 3–18
-      const team1 = firstRow.cells[c].textContent.split(" ")[0];
-      const team2 = secondRow.cells[c].textContent.split(" ")[0];
+    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) { // columns 3–18
+      const team1 = currentRow.cells[c].textContent.split(" ")[0];
+      const team2 = previousRow.cells[c].textContent.split(" ")[0];
       if (team1 && team1 === team2) {
-        firstRow.cells[c].style.backgroundColor = "lightgreen";
-        secondRow.cells[c].style.backgroundColor = "lightgreen";
+        currentRow.cells[c].style.backgroundColor = "lightgreen";
+        previousRow.cells[c].style.backgroundColor = "lightgreen";
       }
     }
 
-    i += 4; // move to the first row of the next block
+    i += 4; // move to the next 4-row block
   }
 
   adjustFontSize();
