@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Data Day Scores by Cheah</title>
+<title>2025 Data Day Scores</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <style>
 body {
@@ -20,16 +20,15 @@ h1 {
 }
 .sheet-container {
   width: 100%;
-  margin: auto;
-  overflow-x: auto;
+  overflow-x: auto; /* horizontal scroll on small screens */
   overflow-y: auto;
-  background: #fff;
   padding: 5px;
   max-height: 90vh;
 }
 table {
   border-collapse: collapse;
-  width: 100%;
+  width: max-content; /* prevent shrinking too much */
+  min-width: 100%;
   table-layout: fixed;
   font-size: 1rem;
   background: #fff;
@@ -37,10 +36,10 @@ table {
 td {
   text-align: center;
   word-break: break-word;
-  padding: 1px 2px;
-  height: 15px;
+  padding: 1px 4px;
+  height: 20px;
   background: #fff;
-  width: 15px;
+  min-width: 20px;
 }
 tbody tr:nth-child(n+3) td:nth-child(2) {
   font-weight: 500;
@@ -56,14 +55,29 @@ tbody tr:nth-child(2) {
   background: #fff;
   z-index: 2;
 }
-tbody tr:nth-child(2) { top: 15px; }
+tbody tr:nth-child(2) { top: 20px; }
 tbody tr:nth-child(4n+6) td {
   border-bottom: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  table {
+    font-size: 0.8rem;
+  }
+  td {
+    padding: 1px 2px;
+    min-width: 15px;
+    height: 18px;
+  }
+  tbody tr:nth-child(n+3) td:nth-child(2) {
+    font-size: 1em;
+  }
 }
 </style>
 </head>
 <body>
-<h1>DATA DAY SCORES by CHEAH</h1>
+<h1>2025 DATA DAY SCORES</h1>
 <div class="sheet-container">
   <table id="sheet-table">
     <thead></thead>
@@ -80,7 +94,7 @@ async function loadSheet() {
   const rows = text.trim().split("\n").map(r => r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
 
-  // Determine min and max of numeric values for gradient
+  // Determine min and max numeric values
   let numbers = [];
   rows.forEach(row => row.forEach(cell => {
     const val = parseFloat(cell);
@@ -106,7 +120,7 @@ async function loadSheet() {
     tbody.appendChild(tr);
   });
 
-  // Apply numeric gradients for every 4th row starting with row 6
+  // Apply numeric gradients every 4th row starting at row 6
   for (let r = 5; r < tbody.rows.length; r += 4) {
     const row = tbody.rows[r];
     Array.from(row.cells).forEach(td => {
@@ -118,17 +132,17 @@ async function loadSheet() {
     });
   }
 
-  // Compare first item: start at row 5 vs row 4, then every 4th row after
+  // Compare first item: start at row 5 vs row 4, then every 4th row
   let i = 4; // row 5 (0-indexed)
   while (i < tbody.rows.length) {
-    const currentRow = tbody.rows[i];       // row 5, 9, 13, ...
-    const previousRow = tbody.rows[i - 1];  // row 4, 8, 12, ...
+    const currentRow = tbody.rows[i];       
+    const previousRow = tbody.rows[i - 1];  
     if (!currentRow || !previousRow) break;
 
-    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) { // columns 3–18
+    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) {
       const cell1 = currentRow.cells[c].textContent.trim();
       const cell2 = previousRow.cells[c].textContent.trim();
-      if (cell1 && cell2) { // skip blank cells
+      if (cell1 && cell2) { // skip blank
         const team1 = cell1.split(" ")[0];
         const team2 = cell2.split(" ")[0];
         if (team1 && team1 === team2) {
@@ -137,8 +151,7 @@ async function loadSheet() {
         }
       }
     }
-
-    i += 4; // move to next 4-row block
+    i += 4;
   }
 
   adjustFontSize();
