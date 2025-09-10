@@ -118,23 +118,27 @@ async function loadSheet() {
     });
   }
 
-  // Compare first item: start at row 2 vs row 1, then repeat every 4th row
-  let i = 1; // row 2 (0-indexed)
+  // Compare first item: start at row 5 vs row 4, then every 4th row after
+  let i = 4; // row 5 (0-indexed)
   while (i < tbody.rows.length) {
-    const currentRow = tbody.rows[i];       // current row
-    const previousRow = tbody.rows[i - 1];  // row above
+    const currentRow = tbody.rows[i];       // row 5, 9, 13, ...
+    const previousRow = tbody.rows[i - 1];  // row 4, 8, 12, ...
     if (!currentRow || !previousRow) break;
 
     for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) { // columns 3–18
-      const team1 = currentRow.cells[c].textContent.split(" ")[0];
-      const team2 = previousRow.cells[c].textContent.split(" ")[0];
-      if (team1 && team1 === team2) {
-        currentRow.cells[c].style.backgroundColor = "lightgreen";
-        previousRow.cells[c].style.backgroundColor = "lightgreen";
+      const cell1 = currentRow.cells[c].textContent.trim();
+      const cell2 = previousRow.cells[c].textContent.trim();
+      if (cell1 && cell2) { // skip blank cells
+        const team1 = cell1.split(" ")[0];
+        const team2 = cell2.split(" ")[0];
+        if (team1 && team1 === team2) {
+          currentRow.cells[c].style.backgroundColor = "lightgreen";
+          previousRow.cells[c].style.backgroundColor = "lightgreen";
+        }
       }
     }
 
-    i += 4; // move to the first row of the next 4-row block
+    i += 4; // move to next 4-row block
   }
 
   adjustFontSize();
