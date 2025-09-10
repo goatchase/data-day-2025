@@ -8,7 +8,7 @@
   <style>
     body {
       font-family: 'Roboto', sans-serif;
-      background: #fff; /* entire page white */
+      background: #fff;
       margin: 0;
       padding: 10px;
       text-align: center;
@@ -23,13 +23,11 @@
     .sheet-container {
       width: 100%;
       margin: auto;
-      overflow-x: auto; /* horizontal scroll enabled */
+      overflow-x: auto;
       overflow-y: auto;
       background: #fff;
-      border-radius: 0;
-      box-shadow: none;
       padding: 5px;
-      max-height: 90vh;
+      max-height: 90vh; 
     }
 
     table {
@@ -38,7 +36,6 @@
       table-layout: fixed;
       font-size: 1rem;
       background: #fff;
-      min-width: 800px; /* ensures scroll on mobile instead of shrinking */
     }
 
     th, td {
@@ -49,32 +46,23 @@
       background: #fff;
     }
 
-    th {
-      display: none;
-    }
+    th { display: none; }
 
-    /* subtle horizontal line every 4 rows starting with 6th row */
     tbody tr:nth-child(4n+6) td {
       border-bottom: 1px solid rgba(0,0,0,0.15);
     }
 
-    /* all columns same smaller width */
-    td {
-      width: 15px;
-    }
+    td { width: 15px; }
 
-    /* second column bold and slightly larger, but only after first 2 rows */
     tbody tr:nth-child(n+3) td:nth-child(2) {
       font-weight: 500;
       font-size: 1.2em;
     }
 
-    /* hover effect */
     tbody tr:nth-child(n+3):hover td {
       background-color: #f2f2f2;
     }
 
-    /* freeze first two rows */
     tbody tr:nth-child(1),
     tbody tr:nth-child(2) {
       position: sticky;
@@ -82,17 +70,8 @@
       background: #fff;
       z-index: 2;
     }
-    tbody tr:nth-child(2) {
-      top: 15px; /* height of first row */
-    }
 
-    /* mobile adjustments */
-    @media (max-width: 768px) {
-      table {
-        width: max-content; /* natural width */
-        min-width: unset;   /* allow scrolling instead of shrinking */
-      }
-    }
+    tbody tr:nth-child(2) { top: 15px; }
   </style>
 </head>
 <body>
@@ -109,62 +88,33 @@
       const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
       const res = await fetch(url);
       const text = await res.text();
-
       const rows = text.trim().split("\n").map(r => r.split(","));
       const tbody = document.querySelector("#sheet-table tbody");
 
-      // Determine min and max of numeric values for gradient
-      let numbers = [];
-      rows.forEach(row => {
-        row.forEach(cell => {
-          const val = parseFloat(cell);
-          if (!isNaN(val)) numbers.push(val);
-        });
-      });
-      const minVal = Math.min(...numbers);
-      const maxVal = Math.max(...numbers);
-
-      function getColor(value) {
-        const ratio = (value - minVal) / (maxVal - minVal);
-        const r = Math.floor(255 * ratio);
-        const g = Math.floor(255 * (1 - ratio));
-        return `rgb(${r},${g},0)`;
-      }
-
       // Populate table
-      rows.forEach((row, rowIndex) => {
+      rows.forEach((row) => {
         const tr = document.createElement("tr");
-        row.forEach((cell, colIndex) => {
+        row.forEach((cell) => {
           const td = document.createElement("td");
           td.textContent = cell;
-
-          // Apply gradient color only for rows starting with 6th and every 4th after
-          if (rowIndex >= 5 && (rowIndex - 5) % 4 === 0) {
-            const val = parseFloat(cell);
-            if (!isNaN(val)) {
-              td.style.backgroundColor = getColor(val);
-              td.style.color = '#fff';
-            }
-          }
-
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
       });
 
-      adjustFontSize();
-      window.addEventListener('resize', adjustFontSize);
-    }
-
-    function adjustFontSize() {
-      const table = document.getElementById("sheet-table");
-      const container = document.querySelector(".sheet-container");
-      const rows = table.rows.length;
-      if (rows === 0) return;
-
-      const containerHeight = window.innerHeight - container.offsetTop - 40; // account for title
-      const newFontSize = Math.min(Math.floor(containerHeight / rows * 1.5), 24);
-      table.style.fontSize = newFontSize + "px";
+      // Highlight cells based on first character before space
+      const startRow = 2; // zero-indexed: row 3
+      for (let r = startRow; r < rows.length; r += 4) {
+        for (let c = 2; c <= 17; c++) { // columns 3 to 18 (zero-indexed)
+          if (!rows[r] || !rows[r + 1]) continue; // skip if row missing
+          const val1 = rows[r][c] ? rows[r][c].split(" ")[0] : "";
+          const val2 = rows[r + 1][c] ? rows[r + 1][c].split(" ")[0] : "";
+          if (val1 && val1 === val2) {
+            tbody.rows[r].cells[c].style.backgroundColor = "lightgreen";
+            tbody.rows[r + 1].cells[c].style.backgroundColor = "lightgreen";
+          }
+        }
+      }
     }
 
     loadSheet();
