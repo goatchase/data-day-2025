@@ -116,16 +116,16 @@ async function loadSheet() {
     tbody.appendChild(tr);
   });
 
-  // Automatic comparison for all row pairs
-  for (let r = 0; r < tbody.rows.length - 1; r++) {
-    const row1 = tbody.rows[r];
-    const row2 = tbody.rows[r + 1];
-    for (let c = 2; c < Math.min(row1.cells.length, 18); c++) { // columns 3–18
-      const team1 = row1.cells[c].textContent.split(" ")[0];
-      const team2 = row2.cells[c].textContent.split(" ")[0];
+  // Compare every 4th row with the row above (row-1) for columns 3–18
+  for (let r = 5; r < tbody.rows.length; r += 4) { // rowIndex 5 = 6th row
+    const currentRow = tbody.rows[r];
+    const previousRow = tbody.rows[r - 1];
+    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) { // columns 3–18
+      const team1 = currentRow.cells[c].textContent.split(" ")[0];
+      const team2 = previousRow.cells[c].textContent.split(" ")[0];
       if (team1 && team1 === team2) {
-        row1.cells[c].style.backgroundColor = "lightgreen";
-        row2.cells[c].style.backgroundColor = "lightgreen";
+        currentRow.cells[c].style.backgroundColor = "lightgreen";
+        previousRow.cells[c].style.backgroundColor = "lightgreen";
       }
     }
   }
