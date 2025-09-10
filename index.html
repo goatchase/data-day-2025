@@ -33,7 +33,7 @@ table {
   font-size: 1rem;
   background: #fff;
 }
-thead th, td {
+td {
   text-align: center;
   word-break: break-word;
   padding: 1px 4px;
@@ -41,24 +41,17 @@ thead th, td {
   background: #fff;
   min-width: 20px;
 }
-tbody td {
-  text-align: center;
-  word-break: break-word;
-  padding: 1px 4px;
-  height: 20px;
-  background: #fff;
-  min-width: 20px;
-}
-tbody tr:nth-child(n+2):hover td {
+tbody tr:nth-child(n+3):hover td {
   background-color: #f2f2f2;
 }
-thead th {
+tbody tr:nth-child(1),
+tbody tr:nth-child(2) {
   position: sticky;
   top: 0;
   background: #fff;
   z-index: 2;
-  font-weight: 500;
 }
+tbody tr:nth-child(2) { top: 20px; }
 
 /* Subtle horizontal line every 4 rows starting at row 2 */
 tbody tr:nth-child(4n+2) td {
@@ -66,7 +59,11 @@ tbody tr:nth-child(4n+2) td {
 }
 
 /* Italicize row 5 and every 4th row after */
-tbody tr:nth-child(4n+5) {
+tbody tr:nth-child(5),
+tbody tr:nth-child(9),
+tbody tr:nth-child(13),
+tbody tr:nth-child(17),
+tbody tr:nth-child(21) {
   font-style: italic;
 }
 
@@ -75,7 +72,7 @@ tbody tr:nth-child(4n+5) {
   table {
     font-size: 0.8rem;
   }
-  td, th {
+  td {
     padding: 1px 2px;
     min-width: 15px;
     height: 18px;
@@ -99,25 +96,18 @@ async function loadSheet() {
   const text = await res.text();
 
   const rows = text.trim().split("\n").map(r => r.split(","));
-  const thead = document.querySelector("#sheet-table thead");
   const tbody = document.querySelector("#sheet-table tbody");
 
-  // First row -> header
-  const headerRow = document.createElement("tr");
-  rows[0].forEach(cell => {
-    const th = document.createElement("th");
-    th.textContent = cell;
-    headerRow.appendChild(th);
-  });
-  thead.appendChild(headerRow);
-
-  // Rest -> tbody
-  rows.slice(1).forEach((row, rowIndex) => {
+  // Populate table
+  rows.forEach((row, rowIndex) => {
     const tr = document.createElement("tr");
     row.forEach((cell, colIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
-      if (colIndex === 1) td.style.fontWeight = "normal"; // unbold W-L column
+
+      // Unbold W-L column (column 2)
+      if (colIndex === 1) td.style.fontWeight = "normal";
+
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
@@ -143,8 +133,8 @@ async function loadSheet() {
     });
   }
 
-  // Compare teams: start at row 5 vs row 4, every 4th row
-  let i = 4; // 0-indexed row 5
+  // Compare teams: start at row 5 vs row 4, every 4th row, skip blank
+  let i = 4; // row 5
   while (i < tbody.rows.length) {
     const currentRow = tbody.rows[i];
     const previousRow = tbody.rows[i - 1];
@@ -156,14 +146,9 @@ async function loadSheet() {
       if (cell1 && cell2) {
         const team1 = cell1.split(" ")[0];
         const team2 = cell2.split(" ")[0];
-        if (team1 && team2) {
-          if (team1 === team2) {
-            currentRow.cells[c].style.backgroundColor = "lightgreen";
-            previousRow.cells[c].style.backgroundColor = "lightgreen";
-          } else {
-            currentRow.cells[c].style.backgroundColor = "#f08080"; // light red
-            previousRow.cells[c].style.backgroundColor = "#f08080";
-          }
+        if (team1 && team1 === team2) {
+          currentRow.cells[c].style.backgroundColor = "lightgreen";
+          previousRow.cells[c].style.backgroundColor = "lightgreen";
         }
       }
     }
