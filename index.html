@@ -96,7 +96,7 @@ async function loadSheet() {
   }
 
   // Populate table
-  rows.forEach((row) => {
+  rows.forEach(row => {
     const tr = document.createElement("tr");
     row.forEach(cell => {
       const td = document.createElement("td");
@@ -118,11 +118,11 @@ async function loadSheet() {
     });
   }
 
-  // Compare first item: start at row 4 (Actuals) vs row 3 (Predictions)
-  let i = 3; // row 4 (0-indexed)
+  // Compare first item: start at row 2 vs row 1, then repeat every 4th row
+  let i = 1; // row 2 (0-indexed)
   while (i < tbody.rows.length) {
-    const currentRow = tbody.rows[i];       // Actuals
-    const previousRow = tbody.rows[i - 1];  // Predictions
+    const currentRow = tbody.rows[i];       // current row
+    const previousRow = tbody.rows[i - 1];  // row above
     if (!currentRow || !previousRow) break;
 
     for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) { // columns 3–18
@@ -134,7 +134,7 @@ async function loadSheet() {
       }
     }
 
-    i += 4; // move to the next 4-row block
+    i += 4; // move to the first row of the next 4-row block
   }
 
   adjustFontSize();
