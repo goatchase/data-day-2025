@@ -88,7 +88,6 @@ async function loadSheet() {
   }));
   const minVal = Math.min(...numbers);
   const maxVal = Math.max(...numbers);
-
   function getColor(value) {
     const ratio = (value - minVal) / (maxVal - minVal);
     const r = Math.floor(255 * ratio);
@@ -117,14 +116,14 @@ async function loadSheet() {
     tbody.appendChild(tr);
   });
 
-  // Compare Predictions (row 3) vs Actuals (row 4)
+  // Compare Predictions (row 3) vs Actuals (row 4) for columns 3–18 by team only
   const predRow = tbody.rows[2]; // row 3 (0-indexed)
   const actualRow = tbody.rows[3]; // row 4
   if (predRow && actualRow) {
-    for (let c = 0; c < predRow.cells.length; c++) {
-      const predVal = predRow.cells[c].textContent.split(" ")[0];
-      const actualVal = actualRow.cells[c].textContent.split(" ")[0];
-      if (predVal && predVal === actualVal) {
+    for (let c = 2; c < 18; c++) { // Columns 3–18
+      const predTeam = predRow.cells[c].textContent.split(" ")[0];
+      const actualTeam = actualRow.cells[c].textContent.split(" ")[0];
+      if (predTeam && predTeam === actualTeam) {
         predRow.cells[c].style.backgroundColor = "lightgreen";
         actualRow.cells[c].style.backgroundColor = "lightgreen";
       }
