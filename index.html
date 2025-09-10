@@ -116,10 +116,12 @@ async function loadSheet() {
     tbody.appendChild(tr);
   });
 
-  // Compare every 4th row with the row above (row-1) for columns 3–18
-  for (let r = 5; r < tbody.rows.length; r += 4) { // rowIndex 5 = 6th row
+  // Compare every 4th row with the previous row (row-1) for columns 3–18
+  for (let r = 2; r < tbody.rows.length; r += 4) { // start at row 3 (0-indexed = 2)
     const currentRow = tbody.rows[r];
     const previousRow = tbody.rows[r - 1];
+    if (!currentRow || !previousRow) continue;
+
     for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) { // columns 3–18
       const team1 = currentRow.cells[c].textContent.split(" ")[0];
       const team2 = previousRow.cells[c].textContent.split(" ")[0];
