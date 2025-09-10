@@ -116,18 +116,18 @@ async function loadSheet() {
     tbody.appendChild(tr);
   });
 
-  // Compare every 4th row with the previous row (row-1) for columns 3–18
-  for (let r = 2; r < tbody.rows.length; r += 4) { // start at row 3 (0-indexed = 2)
-    const currentRow = tbody.rows[r];
-    const previousRow = tbody.rows[r - 1];
-    if (!currentRow || !previousRow) continue;
+  // Compare the first row of each 4-row block with the row immediately below it
+  for (let r = 2; r < tbody.rows.length; r += 4) { // row 3, 7, 11...
+    const firstRow = tbody.rows[r];
+    const secondRow = tbody.rows[r + 1];
+    if (!firstRow || !secondRow) continue;
 
-    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) { // columns 3–18
-      const team1 = currentRow.cells[c].textContent.split(" ")[0];
-      const team2 = previousRow.cells[c].textContent.split(" ")[0];
+    for (let c = 2; c < Math.min(firstRow.cells.length, 18); c++) { // columns 3–18
+      const team1 = firstRow.cells[c].textContent.split(" ")[0];
+      const team2 = secondRow.cells[c].textContent.split(" ")[0];
       if (team1 && team1 === team2) {
-        currentRow.cells[c].style.backgroundColor = "lightgreen";
-        previousRow.cells[c].style.backgroundColor = "lightgreen";
+        firstRow.cells[c].style.backgroundColor = "lightgreen";
+        secondRow.cells[c].style.backgroundColor = "lightgreen";
       }
     }
   }
