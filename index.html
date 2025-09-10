@@ -82,12 +82,10 @@ async function loadSheet() {
 
   // Determine min and max of numeric values for gradient
   let numbers = [];
-  rows.forEach(row => {
-    row.forEach(cell => {
-      const val = parseFloat(cell);
-      if (!isNaN(val)) numbers.push(val);
-    });
-  });
+  rows.forEach(row => row.forEach(cell => {
+    const val = parseFloat(cell);
+    if (!isNaN(val)) numbers.push(val);
+  }));
   const minVal = Math.min(...numbers);
   const maxVal = Math.max(...numbers);
 
@@ -105,7 +103,7 @@ async function loadSheet() {
       const td = document.createElement("td");
       td.textContent = cell;
 
-      // Apply gradient color only for rows starting with 6th and every 4th after
+      // Gradient coloring for rows starting with 6th and every 4th after
       if (rowIndex >= 5 && (rowIndex - 5) % 4 === 0) {
         const val = parseFloat(cell);
         if (!isNaN(val)) {
@@ -119,16 +117,17 @@ async function loadSheet() {
     tbody.appendChild(tr);
   });
 
-  // Highlight green if column 3, row 3 vs row 4 match first character before space
-  const colIndex = 2; // column 3
-  const row3 = tbody.rows[2];
-  const row4 = tbody.rows[3];
-  if (row3 && row4 && row3.cells[colIndex] && row4.cells[colIndex]) {
-    const val3 = row3.cells[colIndex].textContent.split(" ")[0];
-    const val4 = row4.cells[colIndex].textContent.split(" ")[0];
-    if (val3 && val3 === val4) {
-      row3.cells[colIndex].style.backgroundColor = "lightgreen";
-      row4.cells[colIndex].style.backgroundColor = "lightgreen";
+  // Compare Predictions (row 3) vs Actuals (row 4)
+  const predRow = tbody.rows[2]; // row 3 (0-indexed)
+  const actualRow = tbody.rows[3]; // row 4
+  if (predRow && actualRow) {
+    for (let c = 0; c < predRow.cells.length; c++) {
+      const predVal = predRow.cells[c].textContent.split(" ")[0];
+      const actualVal = actualRow.cells[c].textContent.split(" ")[0];
+      if (predVal && predVal === actualVal) {
+        predRow.cells[c].style.backgroundColor = "lightgreen";
+        actualRow.cells[c].style.backgroundColor = "lightgreen";
+      }
     }
   }
 
@@ -141,8 +140,7 @@ function adjustFontSize() {
   const container = document.querySelector(".sheet-container");
   const rows = table.rows.length;
   if (rows === 0) return;
-
-  const containerHeight = window.innerHeight - container.offsetTop - 40; // account for title
+  const containerHeight = window.innerHeight - container.offsetTop - 40;
   const newFontSize = Math.min(Math.floor(containerHeight / rows * 1.5), 24);
   table.style.fontSize = newFontSize + "px";
 }
