@@ -33,7 +33,7 @@ table {
   font-size: 1rem;
   background: #fff;
 }
-td {
+td, th {
   text-align: center;
   word-break: break-word;
   padding: 1px 4px;
@@ -41,23 +41,19 @@ td {
   background: #fff;
   min-width: 20px;
 }
-tbody tr:nth-child(n+3):hover td {
+tbody tr:nth-child(n+1):hover td {
   background-color: #f2f2f2;
 }
-tbody tr:nth-child(1),
-tbody tr:nth-child(2) {
+thead th {
   position: sticky;
   top: 0;
   background: #fff;
   z-index: 2;
 }
-tbody tr:nth-child(2) { top: 20px; }
-
 /* Subtle horizontal line every 4 rows starting at row 2 */
 tbody tr:nth-child(4n+2) td {
   border-bottom: 1px solid rgba(0,0,0,0.15);
 }
-
 /* Italicize row 5 and every 4th row after */
 tbody tr:nth-child(5),
 tbody tr:nth-child(9),
@@ -66,13 +62,12 @@ tbody tr:nth-child(17),
 tbody tr:nth-child(21) {
   font-style: italic;
 }
-
 /* Mobile adjustments */
 @media (max-width: 600px) {
   table {
     font-size: 0.8rem;
   }
-  td {
+  td, th {
     padding: 1px 2px;
     min-width: 15px;
     height: 18px;
@@ -91,30 +86,43 @@ tbody tr:nth-child(21) {
 
 <script>
 async function loadSheet() {
-  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
+  // Use opensheet JSON instead of CSV
+  const url = "https://opensheet.elk.sh/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/Sheet1";
   const res = await fetch(url);
-  const text = await res.text();
+  const rows = await res.json(); // Array of objects
 
-  const rows = text.trim().split("\n").map(r => r.split(","));
+  const thead = document.querySelector("#sheet-table thead");
   const tbody = document.querySelector("#sheet-table tbody");
 
-  // Populate table
-  rows.forEach((row, rowIndex) => {
+  // Convert JSON rows → array of arrays
+  const headers = Object.keys(rows[0] || []);
+  const dataRows = rows.map(r => headers.map(h => r[h] ?? ""));
+
+  // First 2 rows go in <thead>
+  for (let i = 0; i < 2; i++) {
     const tr = document.createElement("tr");
-    row.forEach((cell, colIndex) => {
+    dataRows[i].forEach(cell => {
+      const th = document.createElement("th");
+      th.textContent = cell;
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+  }
+
+  // Remaining rows go in <tbody>
+  for (let i = 2; i < dataRows.length; i++) {
+    const tr = document.createElement("tr");
+    dataRows[i].forEach((cell, colIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
-
-      // Unbold W-L column (column 2)
-      if (colIndex === 1) td.style.fontWeight = "normal";
-
+      if (colIndex === 1) td.style.fontWeight = "normal"; // unbold W-L
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
-  });
+  }
 
-  // Numeric gradient for every 4th row starting at row 6
-  const numbers = rows.flat().map(cell => parseFloat(cell)).filter(v => !isNaN(v));
+  // Gradient coloring on every 4th row starting at row 6 (index 4)
+  const numbers = dataRows.flat().map(cell => parseFloat(cell)).filter(v => !isNaN(v));
   const minVal = Math.min(...numbers);
   const maxVal = Math.max(...numbers);
   function getColor(value) {
@@ -123,7 +131,7 @@ async function loadSheet() {
     const g = Math.floor(255 * (1 - ratio));
     return `rgb(${r},${g},0)`;
   }
-  for (let r = 5; r < tbody.rows.length; r += 4) {
+  for (let r = 4; r < tbody.rows.length; r += 4) {
     Array.from(tbody.rows[r].cells).forEach(td => {
       const val = parseFloat(td.textContent);
       if (!isNaN(val)) {
@@ -133,26 +141,20 @@ async function loadSheet() {
     });
   }
 
-  // Compare teams: start at row 5 vs row 4, every 4th row, skip blank
-  let i = 4; // row 5
-  while (i < tbody.rows.length) {
-    const currentRow = tbody.rows[i];
-    const previousRow = tbody.rows[i - 1];
-    if (!currentRow || !previousRow) break;
-
-    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) {
-      const cell1 = currentRow.cells[c].textContent.trim();
-      const cell2 = previousRow.cells[c].textContent.trim();
-      if (cell1 && cell2) {
-        const team1 = cell1.split(" ")[0];
-        const team2 = cell2.split(" ")[0];
+  // Compare teams row vs row above, highlight if match
+  for (let r = 2; r < tbody.rows.length; r++) {
+    if ((r + 2) % 4 === 0) { // check only the "matchup" rows
+      const currentRow = tbody.rows[r];
+      const prevRow = tbody.rows[r - 1];
+      for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) {
+        const team1 = currentRow.cells[c].textContent.trim().split(" ")[0];
+        const team2 = prevRow.cells[c].textContent.trim().split(" ")[0];
         if (team1 && team1 === team2) {
           currentRow.cells[c].style.backgroundColor = "lightgreen";
-          previousRow.cells[c].style.backgroundColor = "lightgreen";
+          prevRow.cells[c].style.backgroundColor = "lightgreen";
         }
       }
     }
-    i += 4;
   }
 
   adjustFontSize();
