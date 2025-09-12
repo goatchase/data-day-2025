@@ -33,7 +33,7 @@ table {
   font-size: 1rem;
   background: #fff;
 }
-td, th {
+td {
   text-align: center;
   word-break: break-word;
   padding: 1px 4px;
@@ -41,33 +41,38 @@ td, th {
   background: #fff;
   min-width: 20px;
 }
-tbody tr:hover td {
+tbody tr:nth-child(n+3):hover td {
   background-color: #f2f2f2;
 }
-thead th {
+tbody tr:nth-child(1),
+tbody tr:nth-child(2) {
   position: sticky;
   top: 0;
   background: #fff;
   z-index: 2;
 }
+tbody tr:nth-child(2) { top: 20px; }
+
 /* Subtle horizontal line every 4 rows starting at row 2 */
 tbody tr:nth-child(4n+2) td {
   border-bottom: 1px solid rgba(0,0,0,0.15);
 }
+
 /* Italicize row 5 and every 4th row after */
-tbody tr:nth-child(3),
-tbody tr:nth-child(7),
-tbody tr:nth-child(11),
-tbody tr:nth-child(15),
-tbody tr:nth-child(19) {
+tbody tr:nth-child(5),
+tbody tr:nth-child(9),
+tbody tr:nth-child(13),
+tbody tr:nth-child(17),
+tbody tr:nth-child(21) {
   font-style: italic;
 }
+
 /* Mobile adjustments */
 @media (max-width: 600px) {
   table {
     font-size: 0.8rem;
   }
-  td, th {
+  td {
     padding: 1px 2px;
     min-width: 15px;
     height: 18px;
@@ -86,44 +91,34 @@ tbody tr:nth-child(19) {
 
 <script>
 async function loadSheet() {
-  // ✅ Opensheet endpoint (replace Sheet1 with your tab name if different)
-  const url = "https://opensheet.elk.sh/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/Sheet1";
+  const sheetID = "2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa";
+  const tabName = "Sheet1"; // <-- update with your actual tab name if different
+  const url = `https://opensheet.elk.sh/${sheetID}/${tabName}`;
+
   const res = await fetch(url);
-  const rows = await res.json(); // Array of objects
+  const data = await res.json(); // JSON array of objects
 
-  const thead = document.querySelector("#sheet-table thead");
   const tbody = document.querySelector("#sheet-table tbody");
+  tbody.innerHTML = "";
 
-  // Convert JSON rows → array of arrays
-  const headers = Object.keys(rows[0] || []);
-  const dataRows = rows.map(r => headers.map(h => r[h] ?? ""));
+  // Convert JSON objects to 2D array for easier processing
+  const rows = data.map(obj => Object.values(obj));
 
-  // First 2 rows → thead
-  for (let i = 0; i < 2; i++) {
-    if (!dataRows[i]) continue;
+  // Populate table
+  rows.forEach((row, rowIndex) => {
     const tr = document.createElement("tr");
-    dataRows[i].forEach(cell => {
-      const th = document.createElement("th");
-      th.textContent = cell;
-      tr.appendChild(th);
-    });
-    thead.appendChild(tr);
-  }
-
-  // Remaining rows → tbody
-  for (let i = 2; i < dataRows.length; i++) {
-    const tr = document.createElement("tr");
-    dataRows[i].forEach((cell, colIndex) => {
+    row.forEach((cell, colIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
-      if (colIndex === 1) td.style.fontWeight = "normal"; // unbold W-L
+      // Optional: unbold second column
+      if (colIndex === 1) td.style.fontWeight = "normal";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
-  }
+  });
 
-  // Numeric gradient for every 4th row starting at row 6
-  const numbers = dataRows.flat().map(cell => parseFloat(cell)).filter(v => !isNaN(v));
+  // Numeric gradient for every 4th row starting at row 6 (index 5)
+  const numbers = rows.flat().map(cell => parseFloat(cell)).filter(v => !isNaN(v));
   const minVal = Math.min(...numbers);
   const maxVal = Math.max(...numbers);
   function getColor(value) {
@@ -132,7 +127,7 @@ async function loadSheet() {
     const g = Math.floor(255 * (1 - ratio));
     return `rgb(${r},${g},0)`;
   }
-  for (let r = 4; r < tbody.rows.length; r += 4) {
+  for (let r = 5; r < tbody.rows.length; r += 4) {
     Array.from(tbody.rows[r].cells).forEach(td => {
       const val = parseFloat(td.textContent);
       if (!isNaN(val)) {
@@ -142,20 +137,26 @@ async function loadSheet() {
     });
   }
 
-  // Compare teams: row vs previous row
-  for (let r = 2; r < tbody.rows.length; r++) {
-    if ((r + 2) % 4 === 0) { // matchup rows
-      const currentRow = tbody.rows[r];
-      const prevRow = tbody.rows[r - 1];
-      for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) {
-        const team1 = currentRow.cells[c].textContent.trim().split(" ")[0];
-        const team2 = prevRow.cells[c].textContent.trim().split(" ")[0];
+  // Compare teams: every 4th row starting at row 5 (index 4)
+  let i = 4;
+  while (i < tbody.rows.length) {
+    const currentRow = tbody.rows[i];
+    const previousRow = tbody.rows[i - 1];
+    if (!currentRow || !previousRow) break;
+
+    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) {
+      const cell1 = currentRow.cells[c].textContent.trim();
+      const cell2 = previousRow.cells[c].textContent.trim();
+      if (cell1 && cell2) {
+        const team1 = cell1.split(" ")[0];
+        const team2 = cell2.split(" ")[0];
         if (team1 && team1 === team2) {
           currentRow.cells[c].style.backgroundColor = "lightgreen";
-          prevRow.cells[c].style.backgroundColor = "lightgreen";
+          previousRow.cells[c].style.backgroundColor = "lightgreen";
         }
       }
     }
+    i += 4;
   }
 
   adjustFontSize();
