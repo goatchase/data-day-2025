@@ -41,7 +41,7 @@ td, th {
   background: #fff;
   min-width: 20px;
 }
-tbody tr:nth-child(n+1):hover td {
+tbody tr:hover td {
   background-color: #f2f2f2;
 }
 thead th {
@@ -55,11 +55,11 @@ tbody tr:nth-child(4n+2) td {
   border-bottom: 1px solid rgba(0,0,0,0.15);
 }
 /* Italicize row 5 and every 4th row after */
-tbody tr:nth-child(5),
-tbody tr:nth-child(9),
-tbody tr:nth-child(13),
-tbody tr:nth-child(17),
-tbody tr:nth-child(21) {
+tbody tr:nth-child(3),
+tbody tr:nth-child(7),
+tbody tr:nth-child(11),
+tbody tr:nth-child(15),
+tbody tr:nth-child(19) {
   font-style: italic;
 }
 /* Mobile adjustments */
@@ -86,7 +86,7 @@ tbody tr:nth-child(21) {
 
 <script>
 async function loadSheet() {
-  // Use opensheet JSON instead of CSV
+  // ✅ Opensheet endpoint (replace Sheet1 with your tab name if different)
   const url = "https://opensheet.elk.sh/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/Sheet1";
   const res = await fetch(url);
   const rows = await res.json(); // Array of objects
@@ -98,8 +98,9 @@ async function loadSheet() {
   const headers = Object.keys(rows[0] || []);
   const dataRows = rows.map(r => headers.map(h => r[h] ?? ""));
 
-  // First 2 rows go in <thead>
+  // First 2 rows → thead
   for (let i = 0; i < 2; i++) {
+    if (!dataRows[i]) continue;
     const tr = document.createElement("tr");
     dataRows[i].forEach(cell => {
       const th = document.createElement("th");
@@ -109,7 +110,7 @@ async function loadSheet() {
     thead.appendChild(tr);
   }
 
-  // Remaining rows go in <tbody>
+  // Remaining rows → tbody
   for (let i = 2; i < dataRows.length; i++) {
     const tr = document.createElement("tr");
     dataRows[i].forEach((cell, colIndex) => {
@@ -121,7 +122,7 @@ async function loadSheet() {
     tbody.appendChild(tr);
   }
 
-  // Gradient coloring on every 4th row starting at row 6 (index 4)
+  // Numeric gradient for every 4th row starting at row 6
   const numbers = dataRows.flat().map(cell => parseFloat(cell)).filter(v => !isNaN(v));
   const minVal = Math.min(...numbers);
   const maxVal = Math.max(...numbers);
@@ -141,9 +142,9 @@ async function loadSheet() {
     });
   }
 
-  // Compare teams row vs row above, highlight if match
+  // Compare teams: row vs previous row
   for (let r = 2; r < tbody.rows.length; r++) {
-    if ((r + 2) % 4 === 0) { // check only the "matchup" rows
+    if ((r + 2) % 4 === 0) { // matchup rows
       const currentRow = tbody.rows[r];
       const prevRow = tbody.rows[r - 1];
       for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) {
