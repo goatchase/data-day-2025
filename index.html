@@ -91,21 +91,12 @@ tbody tr:nth-child(21) {
 
 <script>
 async function loadSheet() {
-  const sheetID = "2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa";
-  const tabName = "Sheet1"; // replace with your sheet tab name if different
-  const url = `https://opensheet.elk.sh/${sheetID}/${tabName}`;
-  
+  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
   const res = await fetch(url);
-  const data = await res.json();
+  const text = await res.text();
 
+  const rows = text.trim().split("\n").map(r => r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
-
-  // Convert JSON to rows
-  const keys = Object.keys(data[0]);
-  const rows = [keys]; // header row
-  data.forEach(rowObj => {
-    rows.push(keys.map(k => rowObj[k]));
-  });
 
   // Populate table
   rows.forEach((row, rowIndex) => {
@@ -142,8 +133,8 @@ async function loadSheet() {
     });
   }
 
-  // Compare teams: start at row 5 vs row 4, every 4th row
-  let i = 4;
+  // Compare teams: start at row 5 vs row 4, every 4th row, skip blank
+  let i = 4; // row 5
   while (i < tbody.rows.length) {
     const currentRow = tbody.rows[i];
     const previousRow = tbody.rows[i - 1];
