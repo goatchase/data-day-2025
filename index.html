@@ -1,3 +1,4 @@
+data day
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -91,18 +92,12 @@ tbody tr:nth-child(21) {
 
 <script>
 async function loadSheet() {
-  const sheetID = "2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa";
-  const tabName = "Sheet1"; // <-- update with your actual tab name if different
-  const url = `https://opensheet.elk.sh/${sheetID}/${tabName}`;
-
+  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
   const res = await fetch(url);
-  const data = await res.json(); // JSON array of objects
+  const text = await res.text();
 
+  const rows = text.trim().split("\n").map(r => r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
-  tbody.innerHTML = "";
-
-  // Convert JSON objects to 2D array for easier processing
-  const rows = data.map(obj => Object.values(obj));
 
   // Populate table
   rows.forEach((row, rowIndex) => {
@@ -110,14 +105,16 @@ async function loadSheet() {
     row.forEach((cell, colIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
-      // Optional: unbold second column
+
+      // Unbold W-L column (column 2)
       if (colIndex === 1) td.style.fontWeight = "normal";
+
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 
-  // Numeric gradient for every 4th row starting at row 6 (index 5)
+  // Numeric gradient for every 4th row starting at row 6
   const numbers = rows.flat().map(cell => parseFloat(cell)).filter(v => !isNaN(v));
   const minVal = Math.min(...numbers);
   const maxVal = Math.max(...numbers);
@@ -137,8 +134,8 @@ async function loadSheet() {
     });
   }
 
-  // Compare teams: every 4th row starting at row 5 (index 4)
-  let i = 4;
+  // Compare teams: start at row 5 vs row 4, every 4th row, skip blank
+  let i = 4; // row 5
   while (i < tbody.rows.length) {
     const currentRow = tbody.rows[i];
     const previousRow = tbody.rows[i - 1];
