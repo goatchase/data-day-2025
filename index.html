@@ -28,7 +28,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </head>
 <body>
 <h1>"Data" Day Scores by Cheah</h1>
-<button id="openModalBtn">Cheahboard</button>
+<button id="openModalBtn">More "Data"</button>
 
 <!-- Modal -->
 <div id="dartModal" class="modal">
@@ -99,20 +99,24 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
 
   function initDartboard(){
-    const weeks=[]; const weekMap={}; let currentWeek=null; let currentValues=[];
+    const weeks=[]; const weekMap={}; const teamRowMap={}; let currentWeek=null; let currentValues=[];
     for(let i=2;i<rows.length;i++){
       const row=rows[i]; if(!row||row.length===0) continue;
       const week=(row[0]||"").trim();
       const numbers=row.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-      if(week){ if(currentWeek&&currentValues.length) weekMap[currentWeek]=currentValues; currentWeek=week; if(!weeks.includes(week)) weeks.push(week); currentValues=numbers; }
-      else if(numbers.length) currentValues=numbers;
+      if(week){
+        if(currentWeek&&currentValues.length){ weekMap[currentWeek]=currentValues; teamRowMap[currentWeek]=rows[i-1].slice(0,18); }
+        currentWeek=week; if(!weeks.includes(week)) weeks.push(week); currentValues=numbers;
+      }
+      else if(numbers.length){ currentValues=numbers; }
     }
-    if(currentWeek&&currentValues.length) weekMap[currentWeek]=currentValues;
-    while(weeks.length<18) weeks.push(`Week ${weeks.length+1}`);
+    if(currentWeek&&currentValues.length){ weekMap[currentWeek]=currentValues; teamRowMap[currentWeek]=rows[rows.indexOf(rows[rows.length-1])-1].slice(0,18); }
+
+    // rotate weeks so week 1 is top slice
+    while(weeks[0]!=="Week 1" && weeks.length>0) weeks.push(weeks.shift());
 
     const allValues=[].concat(...Object.values(weekMap));
     const maxValue=Math.max(1,...allValues.map(Math.abs));
-    const maxRange=Math.ceil(maxValue/5)*5;
     const sliceAngle=(2*Math.PI)/18;
     const jitterFactor=0.7;
 
@@ -120,15 +124,32 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     const points=weeks.flatMap((week,wi)=>{
       const centerAngle=-Math.PI/2 + wi*sliceAngle + sliceAngle/2;
       const vals=weekMap[week]||[];
-      return vals.map(v=>{
+      const teamRow=teamRowMap[week]||[];
+      return vals.map((v,vi)=>{
         const r=Math.abs(v);
         const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
         const angle=centerAngle+jitter;
-        return {x:r*Math.cos(angle),y:r*Math.sin(angle),value:v};
+        // color based on closeness to zero
+        const ratio=Math.min(1, Math.abs(v)/maxValue);
+        const color=`rgb(${Math.floor(255*ratio)},${Math.floor(255*(1-ratio))},0)`;
+        return {
+          x:r*Math.cos(angle),
+          y:r*Math.sin(angle),
+          value:v,
+          backgroundColor: color,
+          teamRecord: teamRow[vi] || ""
+        };
       });
     });
 
-    const datasets=[{ label:"Pick Accuracy", data:points, pointBackgroundColor:"#3333ff", pointBorderColor:"rgba(0,0,0,0.2)", pointRadius:4, showLine:false }];
+    const datasets=[{
+      label:"Pick Accuracy",
+      data:points,
+      pointBackgroundColor: points.map(p=>p.backgroundColor),
+      pointBorderColor:"rgba(0,0,0,0.2)",
+      pointRadius:4,
+      showLine:false
+    }];
 
     const dartboardBackground={
       id:"dartboardBackground",
@@ -149,14 +170,14 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         }
 
         // rings
-        for(let val=5;val<=maxRange;val+=5){
+        for(let val=5;val<=maxValue;val+=5){
           ctx.beginPath();
-          const rPx=(val/maxRange)*radiusPx;
+          const rPx=(val/maxValue)*radiusPx;
           ctx.arc(cx,cy,rPx,0,2*Math.PI);
           ctx.strokeStyle="rgba(0,0,0,0.1)"; ctx.stroke();
         }
 
-        // week labels outside
+        // week labels
         ctx.fillStyle="#000"; ctx.font="bold 16px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<18;i++){
           const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
@@ -171,7 +192,27 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     };
 
     const ctx=document.getElementById("dartboard").getContext("2d");
-    window._dartChart=new Chart(ctx,{type:"scatter", data:{datasets}, options:{responsive:true, aspectRatio:1, plugins:{legend:{display:false}}, scales:{x:{display:false,min:-maxRange,max:maxRange},y:{display:false,min:-maxRange,max:maxRange}}}, plugins:[dartboardBackground]});
+    window._dartChart=new Chart(ctx,{
+      type:"scatter",
+      data:{datasets},
+      options:{
+        responsive:true,
+        aspectRatio:1,
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              label:function(context){
+                const data=points[context.dataIndex];
+                return `${data.teamRecord} : ${data.value}`;
+              }
+            }
+          }
+        },
+        scales:{x:{display:false,min:-maxValue,max:maxValue},y:{display:false,min:-maxValue,max:maxValue}}
+      },
+      plugins:[dartboardBackground]
+    });
   }
 })();
 </script>
