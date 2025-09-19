@@ -1,175 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Data Day Scores by Cheah</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <style>
-body {
-  font-family: 'Roboto', sans-serif;
-  background: #fff;
-  margin: 0;
-  padding: 10px;
-  text-align: center;
-}
-h1 {
-  margin: 10px 0;
-  font-size: 1.8rem;
-  color: #333;
-}
-.sheet-container {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: auto;
-  padding: 5px;
-  max-height: 90vh;
-}
-table {
-  border-collapse: collapse;
-  width: max-content;
-  min-width: 100%;
-  table-layout: fixed;
-  font-size: 1rem;
-  background: #fff;
-}
-td {
-  text-align: center;
-  word-break: break-word;
-  padding: 1px 4px;
-  height: 20px;
-  background: #fff;
-  min-width: 20px;
-}
-tbody tr:nth-child(n+3):hover td {
-  background-color: #f2f2f2;
-}
-tbody tr:nth-child(1),
-tbody tr:nth-child(2) {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 2;
-}
-tbody tr:nth-child(2) { top: 20px; }
-
-/* Subtle horizontal line every 4 rows starting at row 2 */
-tbody tr:nth-child(4n+2) td {
-  border-bottom: 1px solid rgba(0,0,0,0.15);
-}
-
-/* Italicize row 5 and every 4th row after */
-tbody tr:nth-child(5),
-tbody tr:nth-child(9),
-tbody tr:nth-child(13),
-tbody tr:nth-child(17),
-tbody tr:nth-child(21) {
-  font-style: italic;
-}
-
-/* Mobile adjustments */
-@media (max-width: 600px) {
-  table {
-    font-size: 0.8rem;
+  body { font-family: 'Roboto', sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
+  h1 { margin:10px 0; font-size:1.8rem; color:#333; }
+  #dartboard { max-width:700px; width:90%; height:auto; display:block; margin: 10px auto; }
+  .sheet-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    padding: 5px;
+    max-height: 60vh;
   }
-  td {
-    padding: 1px 2px;
-    min-width: 15px;
-    height: 18px;
-  }
-}
+  table { border-collapse: collapse; width: max-content; min-width: 100%; table-layout: fixed; font-size: 1rem; background:#fff; }
+  td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
+  tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
+  tbody tr:nth-child(1), tbody tr:nth-child(2) { position: sticky; top:0; background:#fff; z-index:2; }
+  tbody tr:nth-child(2) { top:20px; }
+  tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
+  /* a few example italicized rows (keeps your rules) */
+  tbody tr:nth-child(5), tbody tr:nth-child(9), tbody tr:nth-child(13) { font-style: italic; }
+  @media (max-width:600px) { table { font-size:0.8rem; } td { padding:1px 2px; min-width:15px; height:18px; } }
 </style>
 </head>
 <body>
-<h1>Data Day Scores by Cheah</h1>
-<div class="sheet-container">
-  <table id="sheet-table">
-    <thead></thead>
-    <tbody></tbody>
-  </table>
-</div>
+  <h1>Data Day Scores by Cheah</h1>
+
+  <!-- Dartboard canvas (above the table) -->
+  <canvas id="dartboard"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <div class="sheet-container">
+    <table id="sheet-table"><thead></thead><tbody></tbody></table>
+  </div>
 
 <script>
-async function loadSheet() {
+(async function() {
+  // CSV URL (your published Google Sheet)
   const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
-  const res = await fetch(url);
+
+  let res = await fetch(url);
+  if (!res.ok) {
+    console.error("Failed to fetch sheet:", res.status);
+    return;
+  }
   const text = await res.text();
 
+  // Basic CSV split (works for simple sheets) - if you have commas inside cells later, swap to PapaParse
   const rows = text.trim().split("\n").map(r => r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
 
-  // Populate table
+  // populate table (simple cell-by-cell)
   rows.forEach((row, rowIndex) => {
     const tr = document.createElement("tr");
     row.forEach((cell, colIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
-
-      // Unbold W-L column (column 2)
-      if (colIndex === 1) td.style.fontWeight = "normal";
-
+      if (colIndex === 1) td.style.fontWeight = "normal"; // unbold W-L col if that's what you wanted
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 
-  // Numeric gradient for every 4th row starting at row 6
-  const numbers = rows.flat().map(cell => parseFloat(cell)).filter(v => !isNaN(v));
-  const minVal = Math.min(...numbers);
-  const maxVal = Math.max(...numbers);
-  function getColor(value) {
-    const ratio = (value - minVal) / (maxVal - minVal);
-    const r = Math.floor(255 * ratio);
-    const g = Math.floor(255 * (1 - ratio));
-    return `rgb(${r},${g},0)`;
-  }
-  for (let r = 5; r < tbody.rows.length; r += 4) {
-    Array.from(tbody.rows[r].cells).forEach(td => {
-      const val = parseFloat(td.textContent);
-      if (!isNaN(val)) {
-        td.style.backgroundColor = getColor(val);
-        td.style.color = "#fff";
-      }
-    });
-  }
-
-  // Compare teams: start at row 5 vs row 4, every 4th row, skip blank
-  let i = 4; // row 5
-  while (i < tbody.rows.length) {
-    const currentRow = tbody.rows[i];
-    const previousRow = tbody.rows[i - 1];
-    if (!currentRow || !previousRow) break;
-
-    for (let c = 2; c < Math.min(currentRow.cells.length, 18); c++) {
-      const cell1 = currentRow.cells[c].textContent.trim();
-      const cell2 = previousRow.cells[c].textContent.trim();
-      if (cell1 && cell2) {
-        const team1 = cell1.split(" ")[0];
-        const team2 = cell2.split(" ")[0];
-        if (team1 && team1 === team2) {
-          currentRow.cells[c].style.backgroundColor = "lightgreen";
-          previousRow.cells[c].style.backgroundColor = "lightgreen";
-        }
+  // Build a map: weekLabel -> [values...]
+  // NOTE: we skip first 2 rows (assumes header + maybe subheader) to match your prior behavior.
+  const weekMap = {};
+  for (let i = 2; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+    const week = (row[0] || "").trim() || `row${i}`;
+    for (let c = 1; c < row.length; c++) {
+      const v = parseFloat(row[c]);
+      if (!isNaN(v)) {
+        if (!weekMap[week]) weekMap[week] = [];
+        weekMap[week].push(v);
       }
     }
-    i += 4;
   }
 
-  adjustFontSize();
-  window.addEventListener("resize", adjustFontSize);
-}
+  const weeks = Object.keys(weekMap);
+  if (weeks.length === 0) {
+    console.warn("No weeks/data found in sheet.");
+    return;
+  }
 
-function adjustFontSize() {
-  const table = document.getElementById("sheet-table");
-  const container = document.querySelector(".sheet-container");
-  const rows = table.rows.length;
-  if (rows === 0) return;
-  const containerHeight = window.innerHeight - container.offsetTop - 40;
-  const newFontSize = Math.min(Math.floor(containerHeight / rows * 1.5), 24);
-  table.style.fontSize = newFontSize + "px";
-}
+  // Flatten and find max radius (use max absolute value so 0 is center)
+  const allValues = [].concat(...Object.values(weekMap));
+  const maxValue = Math.max(1, ...allValues.map(Math.abs)); // ensure at least 1 to avoid zero-range
+  const maxRange = maxValue * 1.06; // small padding
 
-loadSheet();
+  // Create scatter points per week — distribute (jitter) angles inside that week's slice
+  const sliceAngle = (2 * Math.PI) / weeks.length;
+  const jitterFactor = 0.7; // portion of slice used for jitter
+  const pointsByWeek = weeks.map((week, wi) => {
+    const centerAngle = -Math.PI / 2 + (wi + 0.5) * sliceAngle; // center orientation: top = first week center
+    const vals = weekMap[week] || [];
+    return vals.map(v => {
+      const r = Math.abs(v); // distance from center (0 best)
+      // jitter inside slice so points don't overlap on a single ray
+      const jitter = (Math.random() - 0.5) * sliceAngle * jitterFactor;
+      const angle = centerAngle + jitter;
+      return {
+        x: r * Math.cos(angle),
+        y: r * Math.sin(angle),
+        value: v,
+        r: r,
+        week: week
+      };
+    });
+  });
+
+  // Build Chart.js datasets — one dataset per week so each slice can have its own color
+  const datasets = pointsByWeek.map((points, wi) => {
+    const hue = Math.round((wi / weeks.length) * 360);
+    const color = `hsl(${hue}, 70%, 45%)`;
+    return {
+      label: weeks[wi],
+      data: points,
+      pointBackgroundColor: color,
+      pointBorderColor: "rgba(0,0,0,0.05)",
+      pointRadius: 6,
+      showLine: false
+    };
+  });
+
+  // Clean up previous chart if any
+  if (window._dartChart) {
+    try { window._dartChart.destroy(); } catch(e){/* noop */ }
+    window._dartChart = null;
+  }
+
+  // Create dartboard background plugin (closure captures weeks & maxRange)
+  const dartboardBackground = {
+    id: "dartboardBackground",
+    beforeDraw(chart) {
+      const ctx = chart.ctx;
+      const ca = chart.chartArea;
+      const left = ca.left, right = ca.right, top = ca.top, bottom = ca.bottom;
+      const width = right - left, height = bottom - top;
+      const cx = left + width / 2;
+      const cy = top + height / 2;
+      const radiusPx = Math.min(width, height) / 2 * 0.95; // small padding inside chart area
+      const sliceA = (2 * Math.PI) / weeks.length;
+
+      // draw slices (alternating)
+      for (let i = 0; i < weeks.length; i++) {
+        const start = -Math.PI / 2 + i * sliceA;
+        const end = start + sliceA;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.fillStyle = (i % 2 === 0) ? "rgba(240,240,240,1)" : "rgba(220,220,220,1)";
+        ctx.arc(cx, cy, radiusPx, start, end);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // concentric rings (visual scale)
+      const rings = 4;
+      ctx.lineWidth = 1;
+      for (let k = 1; k <= rings; k++) {
+        ctx.beginPath();
+        const rPx = (k / rings) * radiusPx;
+        ctx.arc(cx, cy, rPx, 0, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(0,0,0,0.08)";
+        ctx.stroke();
+
+        // draw ring label (value) at top of ring
+        const val = (maxRange * (k / rings));
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.font = "12px Roboto, sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        // place a small label near top-right quadrant to avoid overlap with center
+        ctx.fillText(val.toFixed(1), cx + 6, cy - rPx);
+      }
+
+      // week labels around rim
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.font = "12px Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let i = 0; i < weeks.length; i++) {
+        const mid = -Math.PI / 2 + (i + 0.5) * sliceA;
+        const tx = cx + Math.cos(mid) * (radiusPx + 18);
+        const ty = cy + Math.sin(mid) * (radiusPx + 18);
+        ctx.fillText(weeks[i], tx, ty);
+      }
+
+      // small bullseye dot
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(3, radiusPx * 0.03), 0, 2 * Math.PI);
+      ctx.fillStyle = "#222";
+      ctx.fill();
+    }
+  };
+
+  // Build the Chart
+  const ctx = document.getElementById("dartboard").getContext("2d");
+  window._dartChart = new Chart(ctx, {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (ctxItems) => {
+              // dataset label
+              if (!ctxItems || ctxItems.length === 0) return "";
+              return ctxItems[0].dataset.label;
+            },
+            label: (context) => {
+              const r = context.raw;
+              return `Value: ${r.value} (dist ${Math.abs(r.r)})`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: false,
+          min: -maxRange,
+          max: maxRange,
+          ticks: { display: false },
+          grid: { display: false }
+        },
+        y: {
+          display: false,
+          min: -maxRange,
+          max: maxRange,
+          ticks: { display: false },
+          grid: { display: false }
+        }
+      },
+      layout: { padding: 10 }
+    },
+    plugins: [dartboardBackground]
+  });
+
+  // small accessibility: ensure canvas has pixel size set for good render
+  const canvas = document.getElementById("dartboard");
+  canvas.width = Math.min(900, Math.max(400, Math.floor(window.innerWidth * 0.7)));
+  canvas.height = canvas.width;
+
+  // call resize to let chart re-render with new canvas size
+  window._dartChart.resize();
+})();
 </script>
 </body>
 </html>
