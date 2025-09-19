@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>"Data" Day Scores by Cheah</title>
+<title>Data Day Scores by Cheah</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <style>
 body { font-family:'Roboto',sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
@@ -27,8 +27,8 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </style>
 </head>
 <body>
-<h1>"Data" Day Scores by Cheah</h1>
-<button id="openModalBtn">More "Data"</button>
+<h1>Data Day Scores by Cheah</h1>
+<button id="openModalBtn">View Dartboard</button>
 
 <!-- Modal -->
 <div id="dartModal" class="modal">
@@ -85,7 +85,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     }
   }
 
-  // --- Precompute dartboard points ---
+  // Precompute dartboard points (last row per week)
   const weeks=[], weekMap={}, teamRowMap={};
   for(let i=2;i<rows.length;i+=4){ 
     const week=rows[i][0].trim(); 
@@ -97,7 +97,6 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       teamRowMap[week]=rows[i-1].slice(0,18); 
     } 
   }
-  // rotate week 1 to top
   while(weeks[0]!=="Week 1") weeks.push(weeks.shift());
   const allValues=[].concat(...Object.values(weekMap));
   const maxValue=Math.max(1,...allValues.map(Math.abs));
@@ -109,31 +108,24 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     const teamRow=teamRowMap[week]||[];
     return vals.map((v,vi)=>{
       const r=Math.abs(v);
-      const angle=centerAngle; // no jitter for performance
+      const angle=centerAngle;
       const ratio=Math.min(1,r/maxValue);
       const color=`rgb(${Math.floor(255*ratio)},${Math.floor(255*(1-ratio))},0)`; // green=0
-      return {x: r*Math.cos(angle), y:r*Math.sin(angle), value:v, color, teamRecord:teamRow[vi]||"", startX:(maxValue+5)*Math.cos(angle), startY:(maxValue+5)*Math.sin(angle)};
+      return {x:r*Math.cos(angle), y:r*Math.sin(angle), value:v, color, teamRecord:teamRow[vi]||""};
     });
   });
 
-  // --- Modal handling ---
+  // Modal
   const modal=document.getElementById("dartModal");
   const openBtn=document.getElementById("openModalBtn");
   const closeBtn=document.querySelector(".close-btn");
-  let chartInitialized=false, dartChart=null;
+  let chartInitialized=false;
 
   openBtn.onclick=()=>{
     modal.style.display="block";
     if(!chartInitialized){
       renderDartboard();
       chartInitialized=true;
-    } else {
-      // Reset points to start position for animation
-      dartChart.data.datasets[0].data.forEach((p,i)=>{
-        p.x = points[i].startX;
-        p.y = points[i].startY;
-      });
-      dartChart.update({duration:500});
     }
   };
   closeBtn.onclick=()=>{ modal.style.display="none"; };
@@ -142,28 +134,30 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   function renderDartboard(){
     const datasets=[{
       label:"Pick Accuracy",
-      data:points.map(p=>({x:p.startX, y:p.startY, finalX:p.x, finalY:p.y, value:p.value, teamRecord:p.teamRecord})),
+      data:points.map(p=>({x:0, y:0, finalX:p.x, finalY:p.y, value:p.value, teamRecord:p.teamRecord})), // start at center
       pointBackgroundColor: points.map(p=>p.color),
       pointBorderColor:"rgba(0,0,0,0.2)",
-      pointRadius:3,
+      pointRadius:4,
       showLine:false
     }];
 
     const ctx=document.getElementById("dartboard").getContext("2d");
-    dartChart=new Chart(ctx,{
+    new Chart(ctx,{
       type:"scatter",
       data:{datasets},
       options:{
         responsive:true,
         aspectRatio:1,
-        animation:{duration:1000, easing:'easeOutQuad', onProgress:anim=>{
-          // animate from start to final positions
-          dartChart.data.datasets[0].data.forEach((p,i)=>{
-            const t = anim.currentStep/anim.numSteps;
-            p.x = p.finalX * t + p.x*(1-t);
-            p.y = p.finalY * t + p.y*(1-t);
-          });
-        }},
+        animation:{
+          duration:1000,
+          easing:'easeOutCubic',
+          onProgress:anim=>{
+            datasets[0].data.forEach((p,i)=>{
+              p.x = p.finalX * (anim.currentStep/anim.numSteps);
+              p.y = p.finalY * (anim.currentStep/anim.numSteps);
+            });
+          }
+        },
         plugins:{
           legend:{display:false},
           tooltip:{callbacks:{label:ctx=>`${points[ctx.dataIndex].teamRecord} : ${points[ctx.dataIndex].value}`}}
@@ -176,37 +170,26 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           const ctx=chart.ctx, ca=chart.chartArea;
           const cx=(ca.left+ca.right)/2, cy=(ca.top+ca.bottom)/2;
           const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
-
-          // slices
           for(let i=0;i<18;i++){
             const start=-Math.PI/2 + i*sliceAngle, end=start+sliceAngle;
             ctx.beginPath(); ctx.moveTo(cx,cy);
             ctx.fillStyle=(i%2===0)?"#f9f9f9":"#f0f0f0"; ctx.arc(cx,cy,radiusPx,start,end); ctx.closePath(); ctx.fill();
           }
-
-          // rings
           for(let val=5; val<=maxValue; val+=5){
             ctx.beginPath(); ctx.arc(cx,cy,(val/maxValue)*radiusPx,0,2*Math.PI);
             ctx.strokeStyle="rgba(0,0,0,0.08)"; ctx.stroke();
           }
-
-          // week labels
-          ctx.fillStyle="#000"; ctx.font="bold 16px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
+          ctx.fillStyle="#000"; ctx.font="bold 14px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
           for(let i=0;i<18;i++){
             const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
-            const tx=cx + Math.cos(mid)*(radiusPx+35);
-            const ty=cy + Math.sin(mid)*(radiusPx+35);
+            const tx=cx + Math.cos(mid)*(radiusPx+25);
+            const ty=cy + Math.sin(mid)*(radiusPx+25);
             ctx.fillText(weeks[i],tx,ty);
           }
-
-          // bullseye
           ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
         }
       }]
     });
-
-    // animate points from startX/Y to x/y
-    dartChart.update({duration:1000});
   }
 })();
 </script>
