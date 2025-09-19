@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>"Data" Day Scores by Cheah</title>
+<title>Data Day Scores by Cheah</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <style>
 body { font-family:'Roboto',sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
@@ -12,7 +12,7 @@ button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
 
 /* Modal */
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
-.modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:90%; max-width:650px; position:relative; }
+.modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:90%; max-width:500px; position:relative; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
 #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
@@ -27,14 +27,14 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </style>
 </head>
 <body>
-<h1>"Data" Day Scores by Cheah</h1>
-<button id="openModalBtn">More "Data"</button>
+<h1>Data Day Scores by Cheah</h1>
+<button id="openModalBtn">View Dartboard</button>
 
 <!-- Modal -->
 <div id="dartModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
-    <canvas id="dartboard" width="650" height="650"></canvas>
+    <canvas id="dartboard" width="450" height="450"></canvas>
   </div>
 </div>
 
@@ -99,26 +99,26 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
 
   function initDartboard(){
-    const weeks=[]; const weekMap={}; const teamRowMap={}; let currentWeek=null; let currentValues=[];
-    for(let i=2;i<rows.length;i++){
-      const row=rows[i]; if(!row||row.length===0) continue;
-      const week=(row[0]||"").trim();
-      const numbers=row.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-      if(week){
-        if(currentWeek&&currentValues.length){ weekMap[currentWeek]=currentValues; teamRowMap[currentWeek]=rows[i-1].slice(0,18); }
-        currentWeek=week; if(!weeks.includes(week)) weeks.push(week); currentValues=numbers;
-      }
-      else if(numbers.length){ currentValues=numbers; }
+    const weeks=[], weekMap={}, teamRowMap={};
+    // only last row per week
+    for(let i=2;i<rows.length;i+=4){ 
+      const week=rows[i][0].trim(); 
+      const lastRow=rows[i]; 
+      if(week){ 
+        weeks.push(week); 
+        const values=lastRow.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v)); 
+        weekMap[week]=values; 
+        teamRowMap[week]=rows[i-1].slice(0,18); 
+      } 
     }
-    if(currentWeek&&currentValues.length){ weekMap[currentWeek]=currentValues; teamRowMap[currentWeek]=rows[rows.length-2].slice(0,18); }
 
-    // rotate weeks so week 1 is top
-    while(weeks[0]!=="Week 1" && weeks.length>0) weeks.push(weeks.shift());
+    // rotate week 1 to top
+    while(weeks[0]!=="Week 1") weeks.push(weeks.shift());
 
     const allValues=[].concat(...Object.values(weekMap));
     const maxValue=Math.max(1,...allValues.map(Math.abs));
     const sliceAngle=(2*Math.PI)/18;
-    const jitterFactor=0.7;
+    const jitterFactor=0.5;
 
     const points=weeks.flatMap((week,wi)=>{
       const centerAngle=-Math.PI/2 + wi*sliceAngle + sliceAngle/2;
@@ -126,17 +126,10 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       const teamRow=teamRowMap[week]||[];
       return vals.map((v,vi)=>{
         const r=Math.abs(v);
-        const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle=centerAngle+jitter;
-        const ratio=Math.min(1, Math.abs(v)/maxValue);
+        const angle=centerAngle + (Math.random()-0.5)*sliceAngle*jitterFactor;
+        const ratio=Math.min(1, r/maxValue);
         const color=`rgb(${Math.floor(255*ratio)},${Math.floor(255*(1-ratio))},0)`;
-        return {
-          x:r*Math.cos(angle),
-          y:r*Math.sin(angle),
-          value:v,
-          backgroundColor: color,
-          teamRecord: teamRow[vi]||""
-        };
+        return {x:r*Math.cos(angle),y:r*Math.sin(angle),value:v,backgroundColor:color,teamRecord:teamRow[vi]||""};
       });
     });
 
@@ -145,52 +138,12 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       data:points,
       pointBackgroundColor: points.map(p=>p.backgroundColor),
       pointBorderColor:"rgba(0,0,0,0.2)",
-      pointRadius:4,
+      pointRadius:2,
       showLine:false
     }];
 
-    const dartboardBackground={
-      id:"dartboardBackground",
-      beforeDraw(chart){
-        const ctx=chart.ctx;
-        const ca=chart.chartArea;
-        const cx=(ca.left+ca.right)/2;
-        const cy=(ca.top+ca.bottom)/2;
-        const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.9;
-
-        // slices
-        for(let i=0;i<18;i++){
-          const start=-Math.PI/2 + i*sliceAngle;
-          const end=start+sliceAngle;
-          ctx.beginPath(); ctx.moveTo(cx,cy);
-          ctx.fillStyle=(i%2===0)?"#f2f2f2":"#e8e8e8";
-          ctx.arc(cx,cy,radiusPx,start,end); ctx.closePath(); ctx.fill();
-        }
-
-        // rings
-        for(let val=5;val<=maxValue;val+=5){
-          ctx.beginPath();
-          const rPx=(val/maxValue)*radiusPx;
-          ctx.arc(cx,cy,rPx,0,2*Math.PI);
-          ctx.strokeStyle="rgba(0,0,0,0.1)"; ctx.stroke();
-        }
-
-        // week labels
-        ctx.fillStyle="#000"; ctx.font="bold 16px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
-        for(let i=0;i<18;i++){
-          const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
-          const tx=cx + Math.cos(mid)*(radiusPx+30);
-          const ty=cy + Math.sin(mid)*(radiusPx+30);
-          ctx.fillText(weeks[i],tx,ty);
-        }
-
-        // bullseye
-        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
-      }
-    };
-
     const ctx=document.getElementById("dartboard").getContext("2d");
-    window._dartChart=new Chart(ctx,{
+    new Chart(ctx,{
       type:"scatter",
       data:{datasets},
       options:{
@@ -198,18 +151,42 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         aspectRatio:1,
         plugins:{
           legend:{display:false},
-          tooltip:{
-            callbacks:{
-              label:function(context){
-                const data=points[context.dataIndex];
-                return `${data.teamRecord} : ${data.value}`;
-              }
-            }
-          }
+          tooltip:{callbacks:{label:ctx=>`${points[ctx.dataIndex].teamRecord} : ${points[ctx.dataIndex].value}`}}
         },
         scales:{x:{display:false,min:-maxValue,max:maxValue},y:{display:false,min:-maxValue,max:maxValue}}
       },
-      plugins:[dartboardBackground]
+      plugins:[{
+        id:"dartboardBackground",
+        beforeDraw(chart){
+          const ctx=chart.ctx, ca=chart.chartArea;
+          const cx=(ca.left+ca.right)/2, cy=(ca.top+ca.bottom)/2;
+          const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
+
+          // slices
+          for(let i=0;i<18;i++){
+            const start=-Math.PI/2 + i*sliceAngle, end=start+sliceAngle;
+            ctx.beginPath(); ctx.moveTo(cx,cy);
+            ctx.fillStyle=(i%2===0)?"#f9f9f9":"#f0f0f0"; ctx.arc(cx,cy,radiusPx,start,end); ctx.closePath(); ctx.fill();
+          }
+
+          // rings
+          for(let val=5;val<=maxValue;val+=5){
+            ctx.beginPath(); ctx.arc(cx,cy,(val/maxValue)*radiusPx,0,2*Math.PI); ctx.strokeStyle="rgba(0,0,0,0.08)"; ctx.stroke();
+          }
+
+          // week labels
+          ctx.fillStyle="#000"; ctx.font="bold 16px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
+          for(let i=0;i<18;i++){
+            const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
+            const tx=cx + Math.cos(mid)*(radiusPx+35);
+            const ty=cy + Math.sin(mid)*(radiusPx+35);
+            ctx.fillText(weeks[i],tx,ty);
+          }
+
+          // bullseye
+          ctx.beginPath(); ctx.arc(cx,cy,Math.max(2,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
+        }
+      }]
     });
   }
 })();
