@@ -25,15 +25,14 @@
 </style>
 </head>
 <body>
-  <h1>Data Day Scores by Cheah</h1>
+<h1>Data Day Scores by Cheah</h1>
 
-  <!-- Dartboard canvas -->
-  <canvas id="dartboard"></canvas>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<canvas id="dartboard"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <div class="sheet-container">
-    <table id="sheet-table"><thead></thead><tbody></tbody></table>
-  </div>
+<div class="sheet-container">
+  <table id="sheet-table"><thead></thead><tbody></tbody></table>
+</div>
 
 <script>
 (async function() {
@@ -50,7 +49,7 @@
     tbody.appendChild(tr);
   });
 
-  // --- Map weeks to last row of values ---
+  // Map weeks to last row of values
   const weeks = [];
   const weekMap = {};
   let currentWeek = null;
@@ -72,7 +71,6 @@
   }
   if (currentWeek && currentValues.length) weekMap[currentWeek] = currentValues;
 
-  // Force 18 slices
   while (weeks.length < 18) weeks.push(`Week ${weeks.length + 1}`);
 
   const allValues = [].concat(...Object.values(weekMap));
@@ -81,8 +79,10 @@
 
   const sliceAngle = (2*Math.PI)/18;
   const jitterFactor = 0.7;
+
+  // --- Points ---
   const points = weeks.flatMap((week, wi) => {
-    const centerAngle = -Math.PI/2 + (wi+0.5)*sliceAngle;
+    const centerAngle = -Math.PI/2 + wi*sliceAngle + sliceAngle/2; // corrected: sequential slices
     const vals = weekMap[week] || [];
     return vals.map(v=>{
       const r = Math.abs(v);
@@ -92,7 +92,6 @@
     });
   });
 
-  // --- Single dataset for all points ---
   const datasets = [{
     label: "Pick Accuracy",
     data: points,
@@ -102,48 +101,49 @@
     showLine: false
   }];
 
-  // --- Dartboard background plugin ---
+  // --- Dartboard background ---
   const dartboardBackground = {
     id: "dartboardBackground",
-    beforeDraw(chart) {
+    beforeDraw(chart){
       const ctx = chart.ctx;
       const ca = chart.chartArea;
       const cx = (ca.left+ca.right)/2;
       const cy = (ca.top+ca.bottom)/2;
       const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.95;
 
+      // slices: darker red/green
       for (let i=0;i<18;i++){
         const start = -Math.PI/2 + i*sliceAngle;
-        const end = start+sliceAngle;
+        const end = start + sliceAngle;
         ctx.beginPath();
         ctx.moveTo(cx,cy);
-        ctx.fillStyle = (i%2===0)?"#ff0000":"#00aa00";
+        ctx.fillStyle = (i%2===0)?"#880000":"#006600";
         ctx.arc(cx,cy,radiusPx,start,end);
         ctx.closePath();
         ctx.fill();
       }
 
       // rings every 5
-      for(let val=5;val<=maxRange;val+=5){
+      for(let val=5; val<=maxRange; val+=5){
         ctx.beginPath();
         const rPx = (val/maxRange)*radiusPx;
         ctx.arc(cx,cy,rPx,0,2*Math.PI);
         ctx.strokeStyle="rgba(0,0,0,0.1)";
         ctx.stroke();
         ctx.fillStyle="#000";
-        ctx.font="12px Roboto";
-        ctx.fillText(val,cx+6,cy-rPx);
+        ctx.font="14px Roboto";
+        ctx.fillText(val,cx+10,cy-rPx);
       }
 
-      // week labels
+      // week labels outside slices
       ctx.fillStyle="#000";
-      ctx.font="12px Roboto";
+      ctx.font="bold 14px Roboto";
       ctx.textAlign="center";
       ctx.textBaseline="middle";
       for(let i=0;i<18;i++){
-        const mid = -Math.PI/2 + (i+0.5)*sliceAngle;
-        const tx = cx + Math.cos(mid)*(radiusPx+18);
-        const ty = cy + Math.sin(mid)*(radiusPx+18);
+        const mid = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
+        const tx = cx + Math.cos(mid)*(radiusPx+22);
+        const ty = cy + Math.sin(mid)*(radiusPx+22);
         ctx.fillText(weeks[i],tx,ty);
       }
 
