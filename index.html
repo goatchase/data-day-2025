@@ -63,7 +63,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     tbody.appendChild(tr);
   });
 
-  // Conditional formatting
+  // Conditional formatting (keeps your original behavior)
   for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
   const numbers = rows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
   const minVal=Math.min(...numbers);
@@ -99,29 +99,30 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
 
   function initDartboard(){
+    // build week list and weekMap (same as your working code)
     const weeks=[]; const weekMap={}; let currentWeek=null; let currentValues=[];
     for(let i=2;i<rows.length;i++){
       const row=rows[i]; if(!row||row.length===0) continue;
       const week=(row[0]||"").trim();
       const numbers=row.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-      if(week){ 
-        if(currentWeek&&currentValues.length) weekMap[currentWeek]=currentValues; 
-        currentWeek=week; 
-        if(!weeks.includes(week)) weeks.push(week); 
-        currentValues=numbers; 
-      }
-      else if(numbers.length) currentValues=numbers;
+      if(week){
+        if(currentWeek&&currentValues.length) weekMap[currentWeek]=currentValues;
+        currentWeek=week;
+        if(!weeks.includes(week)) weeks.push(week);
+        currentValues=numbers;
+      } else if(numbers.length) currentValues=numbers;
     }
     if(currentWeek&&currentValues.length) weekMap[currentWeek]=currentValues;
     while(weeks.length<18) weeks.push(`Week ${weeks.length+1}`);
 
-    // Shift Week 1 to where Week 9 was, counter-clockwise
+    // Find where "Week 9" currently sits in the raw weeks array
     const indexWeek9 = weeks.indexOf("Week 9");
-    if(indexWeek9 !== -1){
-      const firstPart = weeks.slice(indexWeek9);   
-      const secondPart = weeks.slice(0, indexWeek9); 
-      weeks.splice(0, weeks.length, ...firstPart, ...secondPart);
-    }
+    // fallback: if Week 9 isn't present, default to index 8 (9th slice)
+    const baseIndex = indexWeek9 >= 0 ? indexWeek9 : 8;
+
+    // We will render labels 1..18 starting at baseIndex and going counter-clockwise.
+    // For slice index i (0..17), compute labelNumber = ((baseIndex - i + 18) % 18) + 1
+    // and fetch data from weekMap["Week labelNumber"] so label and data align.
 
     const allValues=[].concat(...Object.values(weekMap));
     const maxValue=Math.max(1,...allValues.map(Math.abs));
@@ -129,16 +130,21 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     const sliceAngle=(2*Math.PI)/18;
     const jitterFactor=0.7;
 
-    const points=weeks.flatMap((week,wi)=>{
-      const centerAngle=-Math.PI/2 + wi*sliceAngle + sliceAngle/2;
-      const vals=weekMap[week]||[];
-      return vals.map(v=>{
+    // Map points using labelNumber -> week key
+    const points=[];
+    for(let i=0;i<18;i++){
+      const labelNum = ((baseIndex - i + 18) % 18) + 1;
+      const weekKey = `Week ${labelNum}`;
+      const vals = weekMap[weekKey] || [];
+      const centerAngle = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
+      // map each numeric value for this weekKey into this slice position
+      vals.forEach(v=>{
         const r=Math.abs(v);
         const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle=centerAngle+jitter;
-        return {x:r*Math.cos(angle),y:r*Math.sin(angle),value:v};
+        const angle=centerAngle + jitter;
+        points.push({ x: r*Math.cos(angle), y: r*Math.sin(angle), value: v, weekKey });
       });
-    });
+    }
 
     const datasets=[{ label:"Pick Accuracy", data:points, pointBackgroundColor:"#3333ff", pointBorderColor:"rgba(0,0,0,0.2)", pointRadius:4, showLine:false }];
 
@@ -161,20 +167,21 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         }
 
         // rings
-        for(let val=5;val<=maxRange;val+=5){
-          const rPx=(val/maxRange)*radiusPx;
-          ctx.beginPath();
-          ctx.arc(cx,cy,rPx,0,2*Math.PI);
+        for(let val=5; val<=maxRange; val+=5){
+          const rPx = (val/maxRange) * radiusPx;
+          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
           ctx.strokeStyle="rgba(0,0,0,0.1)"; ctx.stroke();
         }
 
-        // week labels outside
+        // week labels outside — numbered so the slice that used to show Week 9 shows "1",
+        // and labels increase counter-clockwise.
         ctx.fillStyle="#000"; ctx.font="bold 16px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<18;i++){
           const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
           const tx=cx + Math.cos(mid)*(radiusPx+30);
           const ty=cy + Math.sin(mid)*(radiusPx+30);
-          ctx.fillText(weeks[i],tx,ty);
+          const labelNum = ((baseIndex - i + 18) % 18) + 1;
+          ctx.fillText(String(labelNum), tx, ty);
         }
 
         // bullseye
@@ -183,7 +190,29 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     };
 
     const ctx=document.getElementById("dartboard").getContext("2d");
-    window._dartChart=new Chart(ctx,{type:"scatter", data:{datasets}, options:{responsive:true, aspectRatio:1, plugins:{legend:{display:false}}, scales:{x:{display:false,min:-maxRange,max:maxRange},y:{display:false,min:-maxRange,max:maxRange}}}, plugins:[dartboardBackground]});
+    // create chart
+    window._dartChart = new Chart(ctx, {
+      type: "scatter",
+      data: { datasets },
+      options: {
+        responsive: true,
+        aspectRatio: 1,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              // show week label and value in tooltip (helpful)
+              label: function(context){
+                const p = points[context.dataIndex];
+                return `${p.weekKey} : ${p.value}`;
+              }
+            }
+          }
+        },
+        scales: { x: { display: false, min: -maxRange, max: maxRange }, y: { display: false, min: -maxRange, max: maxRange } }
+      },
+      plugins: [dartboardBackground]
+    });
   }
 })();
 </script>
