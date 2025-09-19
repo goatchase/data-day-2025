@@ -8,13 +8,13 @@
 <style>
   body { font-family: 'Roboto', sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
   h1 { margin:10px 0; font-size:1.8rem; color:#333; }
-  #dartboard { max-width:700px; width:90%; height:auto; display:block; margin: 10px auto; }
+  #dartboard { max-width:500px; width:70%; height:auto; display:block; margin: 10px auto; }
   .sheet-container {
     width: 100%;
     overflow-x: auto;
     overflow-y: auto;
     padding: 5px;
-    max-height: 60vh;
+    max-height: 50vh;
   }
   table { border-collapse: collapse; width: max-content; min-width: 100%; table-layout: fixed; font-size: 1rem; background:#fff; }
   td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
@@ -27,7 +27,7 @@
 <body>
   <h1>Data Day Scores by Cheah</h1>
 
-  <!-- Dartboard canvas (above the table) -->
+  <!-- Dartboard canvas -->
   <canvas id="dartboard"></canvas>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -38,155 +38,142 @@
 <script>
 (async function() {
   const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
-
-  let res = await fetch(url);
-  if (!res.ok) {
-    console.error("Failed to fetch sheet:", res.status);
-    return;
-  }
+  const res = await fetch(url);
+  if (!res.ok) return console.error("Failed to fetch sheet:", res.status);
   const text = await res.text();
-  const rows = text.trim().split("\n").map(r => r.split(","));
+  const rows = text.trim().split("\n").map(r=>r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-    row.forEach((cell, colIndex) => {
-      const td = document.createElement("td");
-      td.textContent = cell;
-      tr.appendChild(td);
-    });
+    row.forEach(cell => { const td = document.createElement("td"); td.textContent = cell; tr.appendChild(td); });
     tbody.appendChild(tr);
   });
 
-  // Collect weeks (first 18 unique values from col 1)
+  // --- Map weeks to last row of values ---
   const weeks = [];
   const weekMap = {};
+  let currentWeek = null;
+  let currentValues = [];
+
   for (let i = 2; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length === 0) continue;
     const week = (row[0] || "").trim();
-    if (week && !weeks.includes(week) && weeks.length < 18) weeks.push(week);
-    for (let c = 1; c < row.length; c++) {
-      const v = parseFloat(row[c]);
-      if (!isNaN(v)) {
-        if (!weekMap[week]) weekMap[week] = [];
-        weekMap[week].push(v);
-      }
+    const numbers = row.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+    if (week) {
+      if (currentWeek && currentValues.length) weekMap[currentWeek] = currentValues;
+      currentWeek = week;
+      if (!weeks.includes(week)) weeks.push(week);
+      currentValues = numbers;
+    } else if (numbers.length) {
+      currentValues = numbers;
     }
   }
+  if (currentWeek && currentValues.length) weekMap[currentWeek] = currentValues;
 
-  // Force 18 slices (if fewer weeks, fill with blanks)
+  // Force 18 slices
   while (weeks.length < 18) weeks.push(`Week ${weeks.length + 1}`);
 
   const allValues = [].concat(...Object.values(weekMap));
   const maxValue = Math.max(1, ...allValues.map(Math.abs));
-  const maxRange = Math.ceil(maxValue / 5) * 5; // round up to nearest 5
+  const maxRange = Math.ceil(maxValue / 5) * 5;
 
-  const sliceAngle = (2 * Math.PI) / 18;
+  const sliceAngle = (2*Math.PI)/18;
   const jitterFactor = 0.7;
-  const pointsByWeek = weeks.map((week, wi) => {
-    const centerAngle = -Math.PI / 2 + (wi + 0.5) * sliceAngle;
+  const points = weeks.flatMap((week, wi) => {
+    const centerAngle = -Math.PI/2 + (wi+0.5)*sliceAngle;
     const vals = weekMap[week] || [];
-    return vals.map(v => {
+    return vals.map(v=>{
       const r = Math.abs(v);
-      const jitter = (Math.random() - 0.5) * sliceAngle * jitterFactor;
+      const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
       const angle = centerAngle + jitter;
-      return {
-        x: r * Math.cos(angle),
-        y: r * Math.sin(angle),
-        value: v,
-        r: r,
-        week: week
-      };
+      return { x: r*Math.cos(angle), y: r*Math.sin(angle), value:v };
     });
   });
 
-  const datasets = pointsByWeek.map((points, wi) => {
-    const hue = Math.round((wi / 18) * 360);
-    const color = `hsl(${hue}, 70%, 45%)`;
-    return {
-      label: weeks[wi],
-      data: points,
-      pointBackgroundColor: color,
-      pointBorderColor: "rgba(0,0,0,0.05)",
-      pointRadius: 6,
-      showLine: false
-    };
-  });
+  // --- Single dataset for all points ---
+  const datasets = [{
+    label: "Pick Accuracy",
+    data: points,
+    pointBackgroundColor: "#0000ff",
+    pointBorderColor: "rgba(0,0,0,0.1)",
+    pointRadius: 6,
+    showLine: false
+  }];
 
-  if (window._dartChart) { window._dartChart.destroy(); }
+  // --- Dartboard background plugin ---
   const dartboardBackground = {
     id: "dartboardBackground",
     beforeDraw(chart) {
       const ctx = chart.ctx;
       const ca = chart.chartArea;
-      const cx = (ca.left + ca.right) / 2;
-      const cy = (ca.top + ca.bottom) / 2;
-      const radiusPx = Math.min(ca.right - ca.left, ca.bottom - ca.top) / 2 * 0.95;
-      const sliceA = (2 * Math.PI) / 18;
+      const cx = (ca.left+ca.right)/2;
+      const cy = (ca.top+ca.bottom)/2;
+      const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.95;
 
-      // slices
-      for (let i = 0; i < 18; i++) {
-        const start = -Math.PI / 2 + i * sliceA;
-        const end = start + sliceA;
+      for (let i=0;i<18;i++){
+        const start = -Math.PI/2 + i*sliceAngle;
+        const end = start+sliceAngle;
         ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.fillStyle = (i % 2 === 0) ? "rgba(240,240,240,1)" : "rgba(220,220,220,1)";
-        ctx.arc(cx, cy, radiusPx, start, end);
+        ctx.moveTo(cx,cy);
+        ctx.fillStyle = (i%2===0)?"#ff0000":"#00aa00";
+        ctx.arc(cx,cy,radiusPx,start,end);
         ctx.closePath();
         ctx.fill();
       }
 
-      // rings at increments of 5
-      for (let val = 5; val <= maxRange; val += 5) {
+      // rings every 5
+      for(let val=5;val<=maxRange;val+=5){
         ctx.beginPath();
-        const rPx = (val / maxRange) * radiusPx;
-        ctx.arc(cx, cy, rPx, 0, 2 * Math.PI);
-        ctx.strokeStyle = "rgba(0,0,0,0.08)";
+        const rPx = (val/maxRange)*radiusPx;
+        ctx.arc(cx,cy,rPx,0,2*Math.PI);
+        ctx.strokeStyle="rgba(0,0,0,0.1)";
         ctx.stroke();
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.font = "12px Roboto";
-        ctx.fillText(val, cx + 6, cy - rPx);
+        ctx.fillStyle="#000";
+        ctx.font="12px Roboto";
+        ctx.fillText(val,cx+6,cy-rPx);
       }
 
       // week labels
-      ctx.fillStyle = "rgba(0,0,0,0.75)";
-      ctx.font = "12px Roboto";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      for (let i = 0; i < 18; i++) {
-        const mid = -Math.PI / 2 + (i + 0.5) * sliceA;
-        const tx = cx + Math.cos(mid) * (radiusPx + 18);
-        const ty = cy + Math.sin(mid) * (radiusPx + 18);
-        ctx.fillText(weeks[i], tx, ty);
+      ctx.fillStyle="#000";
+      ctx.font="12px Roboto";
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      for(let i=0;i<18;i++){
+        const mid = -Math.PI/2 + (i+0.5)*sliceAngle;
+        const tx = cx + Math.cos(mid)*(radiusPx+18);
+        const ty = cy + Math.sin(mid)*(radiusPx+18);
+        ctx.fillText(weeks[i],tx,ty);
       }
 
+      // bullseye
       ctx.beginPath();
-      ctx.arc(cx, cy, Math.max(3, radiusPx * 0.03), 0, 2 * Math.PI);
-      ctx.fillStyle = "#222";
+      ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
+      ctx.fillStyle="#222";
       ctx.fill();
     }
   };
 
   const ctx = document.getElementById("dartboard").getContext("2d");
-  window._dartChart = new Chart(ctx, {
-    type: "scatter",
-    data: { datasets },
-    options: {
-      responsive: true,
-      aspectRatio: 1,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { display: false, min: -maxRange, max: maxRange },
-        y: { display: false, min: -maxRange, max: maxRange }
+  window._dartChart = new Chart(ctx,{
+    type:"scatter",
+    data:{datasets},
+    options:{
+      responsive:true,
+      aspectRatio:1,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ display:false, min:-maxRange, max:maxRange },
+        y:{ display:false, min:-maxRange, max:maxRange }
       }
     },
-    plugins: [dartboardBackground]
+    plugins:[dartboardBackground]
   });
 
   const canvas = document.getElementById("dartboard");
-  canvas.width = 700;
-  canvas.height = 700;
+  canvas.width = 500;
+  canvas.height = 500;
   window._dartChart.resize();
 })();
 </script>
