@@ -6,60 +6,30 @@
 <title>Data Day Scores by Cheah</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  body { font-family: 'Roboto', sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
-  h1 { margin:10px 0; font-size:1.8rem; color:#333; }
-  button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
-  
-  /* Modal styles */
-  .modal {
-    display:none; 
-    position:fixed; 
-    z-index:1000; 
-    left:0; top:0; width:100%; height:100%; 
-    overflow:auto; 
-    background-color: rgba(0,0,0,0.6);
-  }
-  .modal-content {
-    background:#fff;
-    margin:5% auto; 
-    padding:20px;
-    border-radius:8px;
-    width:80%; 
-    max-width:600px;
-    position:relative;
-  }
-  .close-btn {
-    position:absolute;
-    top:10px; right:15px;
-    font-size:1.5rem;
-    font-weight:bold;
-    color:#333;
-    cursor:pointer;
-  }
-  #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
-  
-  .sheet-container {
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: auto;
-    padding: 5px;
-    max-height: 50vh;
-  }
-  table { border-collapse: collapse; width: max-content; min-width: 100%; table-layout: fixed; font-size: 1rem; background:#fff; }
-  td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
-  tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
-  tbody tr:nth-child(1), tbody tr:nth-child(2) { position: sticky; top:0; background:#fff; z-index:2; }
-  tbody tr:nth-child(2) { top:20px; }
-  tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
+body { font-family:'Roboto',sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
+h1 { margin:10px 0; font-size:1.8rem; color:#333; }
+button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
+
+/* Modal */
+.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
+.modal-content { background:#fff; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:600px; position:relative; }
+.close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
+#dartboard { width:100%; height:auto; display:block; margin:0 auto; }
+
+.sheet-container { width:100%; overflow-x:auto; padding:5px; } /* remove max-height */
+table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
+td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
+tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
+tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
+tbody tr:nth-child(2) { top:20px; }
+tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </style>
 </head>
 <body>
 <h1>Data Day Scores by Cheah</h1>
-
-<!-- Button to open modal -->
 <button id="openModalBtn">View Dartboard</button>
 
-<!-- Modal structure -->
+<!-- Modal -->
 <div id="dartModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
@@ -73,147 +43,146 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-(async function() {
+(async function(){
   const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
   const res = await fetch(url);
-  if (!res.ok) return console.error("Failed to fetch sheet:", res.status);
   const text = await res.text();
   const rows = text.trim().split("\n").map(r=>r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
 
-  rows.forEach((row) => {
+  // Populate table
+  rows.forEach((row,rowIndex)=>{
     const tr = document.createElement("tr");
-    row.forEach(cell => { const td = document.createElement("td"); td.textContent = cell; tr.appendChild(td); });
+    row.forEach((cell,colIndex)=>{
+      const td = document.createElement("td");
+      td.textContent = cell;
+
+      // Unbold W-L column (column 2)
+      if(colIndex===1) td.style.fontWeight="normal";
+
+      tr.appendChild(td);
+    });
     tbody.appendChild(tr);
   });
 
-  // --- Map weeks to last row of values ---
-  const weeks = [];
-  const weekMap = {};
-  let currentWeek = null;
-  let currentValues = [];
-
-  for (let i = 2; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.length === 0) continue;
-    const week = (row[0] || "").trim();
-    const numbers = row.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-    if (week) {
-      if (currentWeek && currentValues.length) weekMap[currentWeek] = currentValues;
-      currentWeek = week;
-      if (!weeks.includes(week)) weeks.push(week);
-      currentValues = numbers;
-    } else if (numbers.length) {
-      currentValues = numbers;
+  // Conditional formatting
+  // Italic every 4th row starting at 5
+  for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
+  // Numeric gradient every 4th row starting at row 6
+  const numbers = rows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
+  const minVal=Math.min(...numbers);
+  const maxVal=Math.max(...numbers);
+  function getColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
+  for(let r=5;r<tbody.rows.length;r+=4){
+    Array.from(tbody.rows[r].cells).forEach(td=>{
+      const val=parseFloat(td.textContent);
+      if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
+    });
+  }
+  // Compare teams
+  for(let i=4;i<tbody.rows.length;i+=4){
+    const cur=tbody.rows[i], prev=tbody.rows[i-1];
+    if(!cur||!prev) continue;
+    for(let c=2;c<Math.min(cur.cells.length,18);c++){
+      const t1=cur.cells[c].textContent.trim().split(" ")[0];
+      const t2=prev.cells[c].textContent.trim().split(" ")[0];
+      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
     }
   }
-  if (currentWeek && currentValues.length) weekMap[currentWeek] = currentValues;
-  while (weeks.length < 18) weeks.push(`Week ${weeks.length + 1}`);
 
-  const allValues = [].concat(...Object.values(weekMap));
-  const maxValue = Math.max(1, ...allValues.map(Math.abs));
-  const maxRange = Math.ceil(maxValue / 5) * 5;
+  // --- Dartboard modal ---
+  const modal=document.getElementById("dartModal");
+  const openBtn=document.getElementById("openModalBtn");
+  const closeBtn=document.querySelector(".close-btn");
+  let chartInitialized=false;
 
-  const sliceAngle = (2*Math.PI)/18;
-  const jitterFactor = 0.7;
-
-  const points = weeks.flatMap((week, wi) => {
-    const centerAngle = -Math.PI/2 + wi*sliceAngle + sliceAngle/2;
-    const vals = weekMap[week] || [];
-    return vals.map(v=>{
-      const r = Math.abs(v);
-      const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
-      const angle = centerAngle + jitter;
-      return { x: r*Math.cos(angle), y: r*Math.sin(angle), value:v };
-    });
-  });
-
-  const datasets = [{
-    label: "Pick Accuracy",
-    data: points,
-    pointBackgroundColor: "#0000ff",
-    pointBorderColor: "rgba(0,0,0,0.1)",
-    pointRadius: 6,
-    showLine: false
-  }];
-
-  const dartboardBackground = {
-    id: "dartboardBackground",
-    beforeDraw(chart){
-      const ctx = chart.ctx;
-      const ca = chart.chartArea;
-      const cx = (ca.left+ca.right)/2;
-      const cy = (ca.top+ca.bottom)/2;
-      const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.95;
-
-      // slices: darker red/green
-      for (let i=0;i<18;i++){
-        const start = -Math.PI/2 + i*sliceAngle;
-        const end = start + sliceAngle;
-        ctx.beginPath();
-        ctx.moveTo(cx,cy);
-        ctx.fillStyle = (i%2===0)?"#550000":"#004400";
-        ctx.arc(cx,cy,radiusPx,start,end);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      // rings every 5
-      for(let val=5; val<=maxRange; val+=5){
-        ctx.beginPath();
-        const rPx = (val/maxRange)*radiusPx;
-        ctx.arc(cx,cy,rPx,0,2*Math.PI);
-        ctx.strokeStyle="rgba(0,0,0,0.1)";
-        ctx.stroke();
-        ctx.fillStyle="#000";
-        ctx.font="14px Roboto";
-        ctx.fillText(val,cx+10,cy-rPx);
-      }
-
-      // week labels outside slices
-      ctx.fillStyle="#000";
-      ctx.font="bold 16px Roboto";
-      ctx.textAlign="center";
-      ctx.textBaseline="middle";
-      for(let i=0;i<18;i++){
-        const mid = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
-        const tx = cx + Math.cos(mid)*(radiusPx+28);
-        const ty = cy + Math.sin(mid)*(radiusPx+28);
-        ctx.fillText(weeks[i],tx,ty);
-      }
-
-      // bullseye
-      ctx.beginPath();
-      ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
-      ctx.fillStyle="#222";
-      ctx.fill();
+  openBtn.onclick=()=>{
+    modal.style.display="block";
+    if(!chartInitialized){
+      initDartboard();
+      chartInitialized=true;
     }
   };
+  closeBtn.onclick=()=>{ modal.style.display="none"; };
+  window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
 
-  const ctx = document.getElementById("dartboard").getContext("2d");
-  window._dartChart = new Chart(ctx,{
-    type:"scatter",
-    data:{datasets},
-    options:{
-      responsive:true,
-      aspectRatio:1,
-      plugins:{ legend:{ display:false } },
-      scales:{
-        x:{ display:false, min:-maxRange, max:maxRange },
-        y:{ display:false, min:-maxRange, max:maxRange }
+  function initDartboard(){
+    const weeks=[];
+    const weekMap={};
+    let currentWeek=null;
+    let currentValues=[];
+    for(let i=2;i<rows.length;i++){
+      const row=rows[i];
+      if(!row||row.length===0) continue;
+      const week=(row[0]||"").trim();
+      const numbers=row.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+      if(week){ if(currentWeek&&currentValues.length) weekMap[currentWeek]=currentValues; currentWeek=week; if(!weeks.includes(week)) weeks.push(week); currentValues=numbers; }
+      else if(numbers.length) currentValues=numbers;
+    }
+    if(currentWeek&&currentValues.length) weekMap[currentWeek]=currentValues;
+    while(weeks.length<18) weeks.push(`Week ${weeks.length+1}`);
+    const allValues=[].concat(...Object.values(weekMap));
+    const maxValue=Math.max(1,...allValues.map(Math.abs));
+    const maxRange=Math.ceil(maxValue/5)*5;
+    const sliceAngle=(2*Math.PI)/18;
+    const jitterFactor=0.7;
+    const points=weeks.flatMap((week,wi)=>{
+      const centerAngle=-Math.PI/2 + wi*sliceAngle + sliceAngle/2;
+      const vals=weekMap[week]||[];
+      return vals.map(v=>{ const r=Math.abs(v); const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor; const angle=centerAngle+jitter; return {x:r*Math.cos(angle),y:r*Math.sin(angle),value:v}; });
+    });
+
+    const datasets=[{ label:"Pick Accuracy", data:points, pointBackgroundColor:"#0000ff", pointBorderColor:"rgba(0,0,0,0.1)", pointRadius:6, showLine:false }];
+
+    const dartboardBackground={
+      id:"dartboardBackground",
+      beforeDraw(chart){
+        const ctx=chart.ctx;
+        const ca=chart.chartArea;
+        const cx=(ca.left+ca.right)/2;
+        const cy=(ca.top+ca.bottom)/2;
+        const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.95;
+
+        for(let i=0;i<18;i++){
+          const start=-Math.PI/2 + i*sliceAngle;
+          const end=start+sliceAngle;
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.fillStyle=(i%2===0)?"#550000":"#004400";
+          ctx.arc(cx,cy,radiusPx,start,end);
+          ctx.closePath();
+          ctx.fill();
+        }
+        for(let val=5;val<=maxRange;val+=5){
+          ctx.beginPath();
+          const rPx=(val/maxRange)*radiusPx;
+          ctx.arc(cx,cy,rPx,0,2*Math.PI);
+          ctx.strokeStyle="rgba(0,0,0,0.1)";
+          ctx.stroke();
+          ctx.fillStyle="#000";
+          ctx.font="14px Roboto";
+          ctx.fillText(val,cx+10,cy-rPx);
+        }
+        ctx.fillStyle="#000";
+        ctx.font="bold 16px Roboto";
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        for(let i=0;i<18;i++){
+          const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
+          const tx=cx + Math.cos(mid)*(radiusPx+28);
+          const ty=cy + Math.sin(mid)*(radiusPx+28);
+          ctx.fillText(weeks[i],tx,ty);
+        }
+        ctx.beginPath();
+        ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
+        ctx.fillStyle="#222";
+        ctx.fill();
       }
-    },
-    plugins:[dartboardBackground]
-  });
+    };
 
-  // --- Modal logic ---
-  const modal = document.getElementById("dartModal");
-  const openBtn = document.getElementById("openModalBtn");
-  const closeBtn = document.querySelector(".close-btn");
-
-  openBtn.onclick = () => { modal.style.display="block"; };
-  closeBtn.onclick = () => { modal.style.display="none"; };
-  window.onclick = (e) => { if(e.target === modal) modal.style.display="none"; };
+    const ctx=document.getElementById("dartboard").getContext("2d");
+    window._dartChart=new Chart(ctx,{type:"scatter", data:{datasets}, options:{responsive:true, aspectRatio:1, plugins:{legend:{display:false}}, scales:{x:{display:false,min:-maxRange,max:maxRange},y:{display:false,min:-maxRange,max:maxRange}}}, plugins:[dartboardBackground]});
+  }
 })();
 </script>
 </body>
