@@ -16,6 +16,9 @@ button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
 #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
+/* Min/Avg/Max display */
+#dartStats { margin-top:10px; font-size:1rem; color:#333; }
+
 /* Table */
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
 table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
@@ -35,6 +38,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   <div class="modal-content">
     <span class="close-btn">&times;</span>
     <canvas id="dartboard" width="700" height="700"></canvas>
+    <div id="dartStats"></div>
   </div>
 </div>
 
@@ -89,6 +93,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   const modal=document.getElementById("dartModal");
   const openBtn=document.getElementById("openModalBtn");
   const closeBtn=document.querySelector(".close-btn");
+  const statsDiv = document.getElementById("dartStats");
   let chartInitialized=false;
 
   openBtn.onclick=()=>{
@@ -100,6 +105,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
   function initDartboard(){
     const points=[];
+    const weekAvgs = [];
     const NUM_WEEKS = 18;
     const sliceAngle = (2*Math.PI)/NUM_WEEKS;
     const jitterFactor = 0.7;
@@ -111,16 +117,21 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       if(dataRowIndex >= rows.length) continue;
       const dataRow = rows[dataRowIndex];
       const values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+      if(values.length===0) continue;
       allValues = allValues.concat(values);
 
-      const sliceStart = -Math.PI/2 + w*sliceAngle; // slice start at top
-      const sliceCenter = sliceStart + sliceAngle/2; // center of slice
+      // store weekly average
+      const avgWeek = (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1);
+      weekAvgs.push(avgWeek);
+
+      const sliceStart = -Math.PI/2 + w*sliceAngle;
+      const sliceCenter = sliceStart + sliceAngle/2;
 
       values.forEach(v=>{
         const r = Math.abs(v);
         const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
         const angle = sliceCenter + jitter;
-        points.push({x: r*Math.cos(angle), y: -r*Math.sin(angle), value:v, week: w+1}); // <-- flip Y!
+        points.push({x: r*Math.cos(angle), y: -r*Math.sin(angle), value:v, week: w+1});
       });
     }
 
@@ -172,7 +183,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           ctx.stroke();
         }
 
-        // week labels
+        // week labels with averages
         ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
         ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<NUM_WEEKS;i++){
@@ -180,6 +191,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           const tx = cx + Math.cos(mid)*(radiusPx+25);
           const ty = cy + Math.sin(mid)*(radiusPx+25);
           ctx.fillText("Week "+(i+1),tx,ty);
+          if(weekAvgs[i]) ctx.fillText("Avg:"+weekAvgs[i],tx,ty+15);
         }
 
         // bullseye
@@ -213,6 +225,12 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       },
       plugins:[dartboardBackground]
     });
+
+    // Min / Avg / Max at bottom
+    const totalAvg = (allValues.reduce((a,b)=>a+b,0)/allValues.length).toFixed(1);
+    const totalMin = Math.min(...allValues);
+    const totalMax = Math.max(...allValues);
+    statsDiv.textContent = `Min: ${totalMin}   Avg: ${totalAvg}   Max: ${totalMax}`;
   }
 })();
 </script>
