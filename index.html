@@ -14,10 +14,16 @@ button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
 .modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:95%; max-width:750px; position:relative; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
-#dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
-/* Min/Avg/Max display */
-#dartStats { margin-top:10px; font-size:1rem; color:#333; font-weight:bold; text-align:center; }
+#dartStats { margin-bottom:10px; font-size:1rem; color:#333; font-weight:bold; text-align:center; }
+
+/* Modal header */
+#dartHeader { text-align:center; margin-bottom:5px; }
+#dartHeader h2 { margin:0; font-weight:bold; }
+#dartHeader p { margin:0; font-style:italic; font-size:0.9rem; color:#555; }
+
+/* Canvas */
+#dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
 /* Table */
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
@@ -37,8 +43,12 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 <div id="dartModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
-    <canvas id="dartboard" width="700" height="700"></canvas>
+    <div id="dartHeader">
+      <h2>Cheaccuracy</h2>
+      <p>Accuracy of each game from actual result</p>
+    </div>
     <div id="dartStats"></div>
+    <canvas id="dartboard" width="700" height="700"></canvas>
   </div>
 </div>
 
@@ -191,7 +201,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           const tx = cx + Math.cos(mid)*(radiusPx+25);
           const ty = cy + Math.sin(mid)*(radiusPx+25);
           ctx.fillText("Week "+(i+1),tx,ty);
-          if(weekAvgs[i]) ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15);
+          if(weekAvgs[i]) ctx.fillText("Avg: "+weekAvgs[i]+".0",tx,ty+15);
         }
 
         // bullseye
@@ -213,7 +223,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
             callbacks:{
               label:function(context){
                 const p=points[context.dataIndex];
-                return `Week ${p.week}: ${p.value}`;
+                return `Week ${p.week}: ${p.value}.0`;
               }
             }
           }
@@ -226,11 +236,11 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       plugins:[dartboardBackground]
     });
 
-    // Min / Avg / Max at bottom, integers and bold
+    // Min / Avg / Max at top, integers, trailing zero
     const totalAvg = Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
-    const totalMin = Math.min(...allValues);
-    const totalMax = Math.max(...allValues);
-    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
+    const totalMin = Math.round(Math.min(...allValues));
+    const totalMax = Math.round(Math.max(...allValues));
+    statsDiv.innerHTML = `<strong>Min: ${totalMin}.0 &nbsp;&nbsp; Avg: ${totalAvg}.0 &nbsp;&nbsp; Max: ${totalMax}.0</strong>`;
   }
 })();
 </script>
