@@ -106,18 +106,20 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     let allValues = [];
 
     for(let w=1; w<=NUM_WEEKS; w++){
-      let dataRowIndex = 5 + (w-1)*4; // row 6 for week1, row10 for week2
+      // Week 1 data -> row 6, Week 2 -> row 10, etc.
+      let dataRowIndex = 2 + w*4; // row indices are 0-based, row 6 = index 5 → 2 + 1*4 = 6?
+      dataRowIndex = 5 + (w-1)*4; // safer: week1 -> row6 index 5
       if(dataRowIndex >= rows.length) continue;
       let dataRow = rows[dataRowIndex];
       let values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
       allValues = allValues.concat(values);
 
-      // Slice center: first slice at top, clockwise
+      // Slice center: first slice at top (-π/2)
       const sliceStart = -Math.PI/2 + (w-1)*sliceAngle;
       values.forEach(v=>{
         const r = Math.abs(v);
         const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle = sliceStart + sliceAngle/2 + jitter; // center of slice + jitter
+        const angle = sliceStart + sliceAngle/2 + jitter; // center + jitter
         points.push({x:r*Math.cos(angle),y:r*Math.sin(angle),value:v,week:w});
       });
     }
@@ -169,7 +171,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           ctx.stroke();
         }
 
-        // week labels – closer to circle
+        // week labels
         ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
         ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<NUM_WEEKS;i++){
