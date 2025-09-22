@@ -12,7 +12,7 @@ button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
 
 /* Modal */
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
-.modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:90%; max-width:650px; position:relative; }
+.modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:95%; max-width:700px; position:relative; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
 #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
@@ -34,7 +34,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 <div id="dartModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
-    <canvas id="dartboard" width="650" height="650"></canvas>
+    <canvas id="dartboard" width="700" height="700"></canvas>
   </div>
 </div>
 
@@ -85,7 +85,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     }
   }
 
-  // --- Dartboard modal ---
+  // Dartboard modal
   const modal=document.getElementById("dartModal");
   const openBtn=document.getElementById("openModalBtn");
   const closeBtn=document.querySelector(".close-btn");
@@ -100,27 +100,24 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
   function initDartboard(){
     const points=[];
-    const NUM_WEEKS=18;
-    const sliceAngle=(2*Math.PI)/NUM_WEEKS;
-    const jitterFactor=0.7;
-    let allValues=[];
+    const NUM_WEEKS = 18;
+    const sliceAngle = (2*Math.PI)/NUM_WEEKS;
+    const jitterFactor = 0.7;
+    let allValues = [];
 
-    for(let w=1;w<=NUM_WEEKS;w++){
-      // week row in column A
-      let weekRowIndex = rows.findIndex(r => r[0]?.trim() == w);
-      if(weekRowIndex<0) continue;
-      // 3 rows under the week row
-      let dataRowIndex = weekRowIndex + 3;
+    for(let w=1; w<=NUM_WEEKS; w++){
+      // data row = 6 + (w-1)*4 → row index 5 + (w-1)*4
+      let dataRowIndex = 5 + (w-1)*4;
       if(dataRowIndex >= rows.length) continue;
       let dataRow = rows[dataRowIndex];
       let values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
       allValues = allValues.concat(values);
 
-      const centerAngle=-Math.PI/2 + (w-1)*sliceAngle + sliceAngle/2;
+      const centerAngle = -Math.PI/2 + (w-1)*sliceAngle + sliceAngle/2;
       values.forEach(v=>{
         const r=Math.abs(v);
         const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle=centerAngle+jitter;
+        const angle=centerAngle + jitter;
         points.push({x:r*Math.cos(angle),y:r*Math.sin(angle),value:v,week:w});
       });
     }
@@ -151,7 +148,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         const ca = chart.chartArea;
         const cx = (ca.left+ca.right)/2;
         const cy = (ca.top+ca.bottom)/2;
-        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.9;
+        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
 
         // slices
         for(let i=0;i<NUM_WEEKS;i++){
@@ -165,20 +162,20 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
         // rings
         ctx.strokeStyle="rgba(0,0,0,0.1)";
-        const maxRange = Math.ceil(maxVal/5)*5||5;
-        for(let val=5;val<=maxRange;val+=5){
-          const rPx=(val/maxRange)*radiusPx;
+        const maxRange = Math.ceil(maxVal/5)*5 || 5;
+        for(let val=5; val<=maxRange; val+=5){
+          const rPx = (val/maxRange)*radiusPx;
           ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
           ctx.stroke();
         }
 
-        // week labels – corrected: slice 0 = Week 1
-        ctx.fillStyle="#000"; ctx.font="bold 13px Roboto";
+        // week labels – closer to circle to avoid cutoff
+        ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
         ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<NUM_WEEKS;i++){
           const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
-          const tx=cx + Math.cos(mid)*(radiusPx+28);
-          const ty=cy + Math.sin(mid)*(radiusPx+28);
+          const tx = cx + Math.cos(mid)*(radiusPx+20);
+          const ty = cy + Math.sin(mid)*(radiusPx+20);
           ctx.fillText("Week "+(i+1),tx,ty);
         }
 
