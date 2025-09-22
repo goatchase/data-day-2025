@@ -34,7 +34,7 @@
 <div id="dartModal" class="modal" aria-hidden="true">
   <div class="modal-content">
     <span class="close-btn" id="closeModalBtn">&times;</span>
-    <canvas id="dartboard" width="650" height="650"></canvas>
+    <canvas id="dartboard" width="650" height="650" role="img" aria-label="Dartboard scatter"></canvas>
   </div>
 </div>
 
@@ -45,29 +45,59 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (async function(){
+  // CONFIG
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
-  const DATA_START_INDEX = 2;   // first data row index (0-based)
-  const ROWS_PER_WEEK = 4;      // every 4th row
-  const NUM_WEEKS = 18;
+  const DATA_START_INDEX = 2;   // first data row index in rows[] (0-based). matches your prior code (i = 2)
+  const ROWS_PER_WEEK = 4;      // every 4th row corresponds to the week's numbers
+  const NUM_WEEKS = 18;         // slices 1..18
 
   // Fetch CSV
   const res = await fetch(CSV_URL);
   const text = await res.text();
+  // naive CSV split (keeps it consistent with your previous approach)
   const rows = text.trim().split("\n").map(r => r.split(","));
 
-  // Populate table
+  // Populate simple table view (unchanged)
   const tbody = document.querySelector("#sheet-table tbody");
   rows.forEach(row => {
     const tr = document.createElement("tr");
-    row.forEach(cell => {
+    row.forEach((cell, colIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
+      if (colIndex === 1) td.style.fontWeight = "normal";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 
-  // Modal
+  // (optional) conditional formatting from previous code (keeps old styles)
+  for (let i = 4; i < tbody.rows.length; i += 4) tbody.rows[i].style.fontStyle = "italic";
+  const numbersAll = rows.flat().map(c => parseFloat(c)).filter(v => !isNaN(v));
+  const minVal = numbersAll.length ? Math.min(...numbersAll) : 0;
+  const maxVal = numbersAll.length ? Math.max(...numbersAll) : 1;
+  function getColor(value){
+    const ratio = (value - minVal) / (maxVal - minVal || 1);
+    const r = Math.floor(255 * ratio);
+    const g = Math.floor(255 * (1 - ratio));
+    return `rgb(${r},${g},0)`;
+  }
+  for (let r = 5; r < tbody.rows.length; r += 4) {
+    Array.from(tbody.rows[r].cells).forEach(td => {
+      const val = parseFloat(td.textContent);
+      if (!isNaN(val)) { td.style.backgroundColor = getColor(val); td.style.color = "#fff"; }
+    });
+  }
+  for (let i = 4; i < tbody.rows.length; i += 4){
+    const cur = tbody.rows[i], prev = tbody.rows[i-1];
+    if (!cur || !prev) continue;
+    for (let c = 2; c < Math.min(cur.cells.length, 18); c++){
+      const t1 = cur.cells[c].textContent.trim().split(" ")[0];
+      const t2 = prev.cells[c].textContent.trim().split(" ")[0];
+      if (t1 && t1 === t2) { cur.cells[c].style.backgroundColor = "lightgreen"; prev.cells[c].style.backgroundColor = "lightgreen"; }
+    }
+  }
+
+  // --- Modal / chart handling ---
   const modal = document.getElementById("dartModal");
   const openBtn = document.getElementById("openModalBtn");
   const closeBtn = document.getElementById("closeModalBtn");
@@ -75,38 +105,44 @@
 
   openBtn.onclick = () => {
     modal.style.display = "block";
+    modal.setAttribute("aria-hidden", "false");
+    // init chart when modal becomes visible so Chart.js can compute sizes
     if (!chartInitialized) { initDartboard(); chartInitialized = true; }
+    else if (window._dartChart) { window._dartChart.resize(); }
   };
-  closeBtn.onclick = () => { modal.style.display = "none"; };
-  window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+  closeBtn.onclick = () => { modal.style.display = "none"; modal.setAttribute("aria-hidden","true"); };
+  window.onclick = (e) => { if (e.target === modal) { modal.style.display = "none"; modal.setAttribute("aria-hidden","true"); } };
 
   function initDartboard(){
-    // Build week map
+    // Build weekMap by picking every 4th row starting at DATA_START_INDEX
+    // weekMap[weekNumber] = array of numeric values for that week
     const weekMap = {};
     for (let w = 1; w <= NUM_WEEKS; w++){
       const rowIndex = DATA_START_INDEX + (w - 1) * ROWS_PER_WEEK;
       if (rowIndex >= rows.length) { weekMap[w] = []; continue; }
       const row = rows[rowIndex] || [];
-      // FIXED: only cols 3–18 (indexes 2–17)
-      const values = row.slice(2, 18).map(v => parseFloat(v)).filter(n => !isNaN(n));
+      // values are in columns 1..end (first column is week id)
+      const values = row.slice(1).map(v => parseFloat(v)).filter(n => !isNaN(n));
       weekMap[w] = values;
     }
 
+    // Prepare plotting scale
     const allValues = [].concat(...Object.values(weekMap));
     const maxValue = allValues.length ? Math.max(1, ...allValues.map(Math.abs)) : 1;
-    const maxRange = Math.ceil(maxValue/5)*5;
+    const maxRange = Math.ceil(maxValue / 5) * 5 || 5; // nice round top of the rings
     const sliceCount = NUM_WEEKS;
-    const sliceAngle = (2*Math.PI)/sliceCount;
+    const sliceAngle = (2 * Math.PI) / sliceCount;
     const jitterFactor = 0.7;
 
+    // Build points (data-space coordinates)
     const points = [];
     for (let i = 0; i < sliceCount; i++){
       const weekNum = i + 1;
       const vals = weekMap[weekNum] || [];
-      const centerAngle = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
+      const centerAngle = -Math.PI/2 + i * sliceAngle + sliceAngle / 2;
       vals.forEach(v => {
-        const r = v;
-        const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
+        const r = Math.abs(v); // data radial distance
+        const jitter = (Math.random() - 0.5) * sliceAngle * jitterFactor;
         const angle = centerAngle + jitter;
         points.push({
           x: r * Math.cos(angle),
@@ -117,84 +153,112 @@
       });
     }
 
+    // Chart dataset
     const datasets = [{
-      label:"Week scores",
+      label: "Week scores",
       data: points,
-      pointRadius:5,
-      pointBackgroundColor:"#2b6cff",
-      showLine:false
+      pointRadius: 5,
+      pointBackgroundColor: points.map(p => '#2b6cff'),
+      showLine: false
     }];
 
+    // Custom plugin to draw dartboard slices + rings + labels
     const dartboardBackground = {
-      id:"dartboardBackground",
+      id: 'dartboardBackground',
       beforeDraw(chart){
-        if (!chart.chartArea) return;
-        const ctx=chart.ctx, ca=chart.chartArea;
-        const cx=(ca.left+ca.right)/2, cy=(ca.top+ca.bottom)/2;
-        const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.9;
+        if (!chart.chartArea) return; // safety
+        const ctx = chart.ctx;
+        const ca = chart.chartArea;
+        const cx = (ca.left + ca.right) / 2;
+        const cy = (ca.top + ca.bottom) / 2;
+        const radiusPx = Math.min(ca.right - ca.left, ca.bottom - ca.top) / 2 * 0.9;
+
+        // Clear area (optional)
+        // ctx.clearRect(ca.left, ca.top, ca.right-ca.left, ca.bottom-ca.top);
 
         // slices
-        for (let i=0;i<sliceCount;i++){
-          const start=-Math.PI/2+i*sliceAngle;
-          const end=start+sliceAngle;
+        for (let i = 0; i < sliceCount; i++){
+          const start = -Math.PI/2 + i * sliceAngle;
+          const end = start + sliceAngle;
           ctx.beginPath();
-          ctx.moveTo(cx,cy);
-          ctx.fillStyle=(i%2===0)?"#f2f2f2":"#e8e8e8";
-          ctx.arc(cx,cy,radiusPx,start,end);
+          ctx.moveTo(cx, cy);
+          ctx.fillStyle = (i % 2 === 0) ? "#f2f2f2" : "#e8e8e8";
+          ctx.arc(cx, cy, radiusPx, start, end);
           ctx.closePath();
           ctx.fill();
-        }
 
-        // rings
-        for (let val=5; val<=maxRange; val+=5){
-          const rPx=(val/maxRange)*radiusPx;
+          // divider line
           ctx.beginPath();
-          ctx.arc(cx,cy,rPx,0,2*Math.PI);
-          ctx.strokeStyle="rgba(0,0,0,0.1)";
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(start) * radiusPx, cy + Math.sin(start) * radiusPx);
+          ctx.strokeStyle = "rgba(0,0,0,0.08)";
           ctx.stroke();
         }
 
-        // week labels
-        ctx.fillStyle="#000"; ctx.font="bold 13px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
-        for (let i=0;i<sliceCount;i++){
-          const mid=-Math.PI/2+i*sliceAngle+sliceAngle/2;
-          const tx=cx+Math.cos(mid)*(radiusPx+28);
-          const ty=cy+Math.sin(mid)*(radiusPx+28);
-          ctx.fillText("Week "+(i+1),tx,ty);
+        // concentric rings (value markers)
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(0,0,0,0.08)";
+        for (let val = 5; val <= maxRange; val += 5){
+          const rPx = (val / maxRange) * radiusPx;
+          ctx.beginPath();
+          ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // week labels (we draw "Week 1" etc—adjust if you want just numbers)
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 13px Roboto, Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let i = 0; i < sliceCount; i++){
+          const mid = -Math.PI/2 + i * sliceAngle + sliceAngle / 2;
+          const tx = cx + Math.cos(mid) * (radiusPx + 28);
+          const ty = cy + Math.sin(mid) * (radiusPx + 28);
+          const label = "Week " + (i + 1);
+          ctx.fillText(label, tx, ty);
         }
 
         // bullseye
-        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
-        ctx.fillStyle="#222"; ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(3, radiusPx * 0.03), 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
       }
     };
 
-    const ctx=document.getElementById("dartboard").getContext("2d");
-    if (window._dartChart) window._dartChart.destroy();
-    window._dartChart=new Chart(ctx,{
-      type:"scatter",
-      data:{datasets},
-      options:{
-        responsive:true,
-        maintainAspectRatio:true,
-        aspectRatio:1,
-        plugins:{
-          legend:{display:false},
-          tooltip:{
-            callbacks:{
-              label:function(context){
-                const p=points[context.dataIndex];
+    // Create Chart when modal is visible (we're inside init called from open)
+    const ctx = document.getElementById("dartboard").getContext("2d");
+    // Destroy previous chart if any
+    if (window._dartChart && typeof window._dartChart.destroy === "function") {
+      window._dartChart.destroy();
+      window._dartChart = null;
+    }
+
+    window._dartChart = new Chart(ctx, {
+      type: 'scatter',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        animation: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const p = points[context.dataIndex];
                 return `Week ${p.week}: ${p.value}`;
               }
             }
           }
         },
-        scales:{
-          x:{display:false,min:-maxRange,max:maxRange},
-          y:{display:false,min:-maxRange,max:maxRange}
+        scales: {
+          x: { type: 'linear', display: false, min: -maxRange, max: maxRange },
+          y: { type: 'linear', display: false, min: -maxRange, max: maxRange }
         }
       },
-      plugins:[dartboardBackground]
+      plugins: [dartboardBackground]
     });
   }
 })();
