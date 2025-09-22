@@ -100,27 +100,28 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
   function initDartboard(){
     const points=[];
-const NUM_WEEKS = 18;
-const sliceAngle = (2*Math.PI)/NUM_WEEKS;
-const jitterFactor = 0.7;
-let allValues = [];
+    const NUM_WEEKS = 18;
+    const sliceAngle = (2*Math.PI)/NUM_WEEKS;
+    const jitterFactor = 0.7;
+    let allValues = [];
 
-for(let w=1; w<=NUM_WEEKS; w++){
-  let dataRowIndex = 5 + (w-1)*4; // row 6 for week 1, row 10 for week 2
-  if(dataRowIndex >= rows.length) continue;
-  let dataRow = rows[dataRowIndex];
-  let values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-  allValues = allValues.concat(values);
+    for(let w=1; w<=NUM_WEEKS; w++){
+      let dataRowIndex = 5 + (w-1)*4; // row 6 for week1, row10 for week2
+      if(dataRowIndex >= rows.length) continue;
+      let dataRow = rows[dataRowIndex];
+      let values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+      allValues = allValues.concat(values);
 
-  // Correct center angle: slice 1 is at -π/2, then clockwise
-  const centerAngle = -Math.PI/2 + (w-1)*sliceAngle;
-  values.forEach(v=>{
-    const r=Math.abs(v);
-    const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
-    const angle=centerAngle + sliceAngle/2 + jitter; // place in middle of slice
-    points.push({x:r*Math.cos(angle),y:r*Math.sin(angle),value:v,week:w});
-  });
-}
+      // Slice center: first slice at top, clockwise
+      const sliceStart = -Math.PI/2 + (w-1)*sliceAngle;
+      values.forEach(v=>{
+        const r = Math.abs(v);
+        const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
+        const angle = sliceStart + sliceAngle/2 + jitter; // center of slice + jitter
+        points.push({x:r*Math.cos(angle),y:r*Math.sin(angle),value:v,week:w});
+      });
+    }
+
     const minVal = allValues.length ? Math.min(...allValues) : 0;
     const maxVal = allValues.length ? Math.max(...allValues) : 1;
 
@@ -168,7 +169,7 @@ for(let w=1; w<=NUM_WEEKS; w++){
           ctx.stroke();
         }
 
-        // week labels – closer to circle to avoid cutoff
+        // week labels – closer to circle
         ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
         ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<NUM_WEEKS;i++){
