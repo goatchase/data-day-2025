@@ -17,7 +17,7 @@ button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
 #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
 /* Min/Avg/Max display */
-#dartStats { margin-top:10px; font-size:1rem; color:#333; }
+#dartStats { margin-top:10px; font-size:1rem; color:#333; font-weight:bold; text-align:center; }
 
 /* Table */
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
@@ -121,7 +121,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       allValues = allValues.concat(values);
 
       // store weekly average
-      const avgWeek = (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1);
+      const avgWeek = Math.round(values.reduce((a,b)=>a+b,0)/values.length);
       weekAvgs.push(avgWeek);
 
       const sliceStart = -Math.PI/2 + w*sliceAngle;
@@ -191,7 +191,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           const tx = cx + Math.cos(mid)*(radiusPx+25);
           const ty = cy + Math.sin(mid)*(radiusPx+25);
           ctx.fillText("Week "+(i+1),tx,ty);
-          if(weekAvgs[i]) ctx.fillText("Avg:"+weekAvgs[i],tx,ty+15);
+          if(weekAvgs[i]) ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15);
         }
 
         // bullseye
@@ -226,11 +226,11 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       plugins:[dartboardBackground]
     });
 
-    // Min / Avg / Max at bottom
-    const totalAvg = (allValues.reduce((a,b)=>a+b,0)/allValues.length).toFixed(1);
+    // Min / Avg / Max at bottom, integers and bold
+    const totalAvg = Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
     const totalMin = Math.min(...allValues);
     const totalMax = Math.max(...allValues);
-    statsDiv.textContent = `Min: ${totalMin}   Avg: ${totalAvg}   Max: ${totalMax}`;
+    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
   }
 })();
 </script>
