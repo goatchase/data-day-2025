@@ -12,18 +12,11 @@ button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
 
 /* Modal */
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
-.modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:90%; max-width:650px; position:relative; }
+.modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:90%; max-width:700px; position:relative; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
 #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
-
-/* Table */
-.sheet-container { width:100%; overflow-x:auto; padding:5px; }
-table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
-td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
-tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
-tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
-tbody tr:nth-child(2) { top:20px; }
-tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
+.legend { display:flex; justify-content:center; margin-top:10px; gap:10px; font-size:0.9rem; }
+.legend span { display:inline-block; width:20px; height:20px; vertical-align:middle; border:1px solid #000; }
 </style>
 </head>
 <body>
@@ -35,6 +28,11 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   <div class="modal-content">
     <span class="close-btn" id="closeModalBtn">&times;</span>
     <canvas id="dartboard" width="650" height="650" role="img" aria-label="Dartboard scatter"></canvas>
+    <div class="legend">
+      <span style="background:green"></span> Low
+      <span style="background:yellow"></span> Medium
+      <span style="background:red"></span> High
+    </div>
   </div>
 </div>
 
@@ -54,16 +52,16 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   const tbody = document.querySelector("#sheet-table tbody");
   rows.forEach(row => {
     const tr = document.createElement("tr");
-    row.forEach((cell, colIndex) => {
-      const td = document.createElement("td");
+    row.forEach((cell,colIndex)=>{
+      const td=document.createElement("td");
       td.textContent = cell;
-      if(colIndex === 1) td.style.fontWeight="normal";
+      if(colIndex===1) td.style.fontWeight="normal";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 
-  // Conditional formatting (optional)
+  // Conditional formatting
   for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
   const numbers = rows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
   const minVal=Math.min(...numbers);
@@ -80,40 +78,29 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
     });
   }
-  for(let i=4;i<tbody.rows.length;i+=4){
-    const cur=tbody.rows[i], prev=tbody.rows[i-1];
-    if(!cur||!prev) continue;
-    for(let c=2;c<Math.min(cur.cells.length,18);c++){
-      const t1=cur.cells[c].textContent.trim().split(" ")[0];
-      const t2=prev.cells[c].textContent.trim().split(" ")[0];
-      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
-    }
-  }
 
-  // --- Dartboard modal ---
-  const modal = document.getElementById("dartModal");
-  const openBtn = document.getElementById("openModalBtn");
-  const closeBtn = document.getElementById("closeModalBtn");
-  let chartInitialized = false;
+  // --- Dartboard ---
+  const modal=document.getElementById("dartModal");
+  const openBtn=document.getElementById("openModalBtn");
+  const closeBtn=document.getElementById("closeModalBtn");
+  let chartInitialized=false;
 
   openBtn.onclick = () => {
-    modal.style.display = "block";
-    modal.setAttribute("aria-hidden","false");
+    modal.style.display="block"; modal.setAttribute("aria-hidden","false");
     if(!chartInitialized){ initDartboard(); chartInitialized=true; }
     else if(window._dartChart) { window._dartChart.resize(); }
   };
   closeBtn.onclick = () => { modal.style.display="none"; modal.setAttribute("aria-hidden","true"); };
-  window.onclick = (e) => { if(e.target === modal) { modal.style.display="none"; modal.setAttribute("aria-hidden","true"); } };
+  window.onclick = (e) => { if(e.target===modal){ modal.style.display="none"; modal.setAttribute("aria-hidden","true"); } };
 
   function initDartboard(){
-    const points = [];
-    const NUM_WEEKS = 18;
-    const sliceAngle = (2 * Math.PI) / NUM_WEEKS;
-    const jitterFactor = 0.7;
-    let allValues = [];
+    const points=[];
+    const NUM_WEEKS=18;
+    const sliceAngle=(2*Math.PI)/NUM_WEEKS;
+    const jitterFactor=0.7;
+    let allValues=[];
 
-    for(let w=1; w<=NUM_WEEKS; w++){
-      // Find row where column A == week number
+    for(let w=1;w<=NUM_WEEKS;w++){
       let weekRowIndex = rows.findIndex(r => r[0]?.trim() == w);
       if(weekRowIndex < 0) continue;
       let dataRowIndex = weekRowIndex + 3;
@@ -122,27 +109,35 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       let values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
       allValues = allValues.concat(values);
 
-      const centerAngle = -Math.PI/2 + (w-1) * sliceAngle + sliceAngle/2;
+      const centerAngle=-Math.PI/2 + (w-1)*sliceAngle + sliceAngle/2;
       values.forEach(v=>{
-        const r = Math.abs(v);
-        const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle = centerAngle + jitter;
+        const r=Math.abs(v);
+        const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
+        const angle=centerAngle+jitter;
         points.push({
-          x: r*Math.cos(angle),
-          y: r*Math.sin(angle),
-          value: v,
-          week: w
+          x:r*Math.cos(angle),
+          y:r*Math.sin(angle),
+          value:v,
+          week:w
         });
       });
     }
 
-    const maxValue = allValues.length ? Math.max(...allValues.map(Math.abs)) : 1;
-    const maxRange = Math.ceil(maxValue/5)*5 || 5;
+    const minVal = allValues.length ? Math.min(...allValues) : 0;
+    const maxVal = allValues.length ? Math.max(...allValues) : 1;
 
-    const datasets = [{
+    // Color function for scatter points
+    function pointColor(value){
+      const ratio=(value-minVal)/(maxVal-minVal);
+      if(ratio < 0.33) return "green";
+      else if(ratio < 0.66) return "yellow";
+      else return "red";
+    }
+
+    const datasets=[{
       label:"Week scores",
       data: points,
-      pointBackgroundColor: "#2b6cff",
+      pointBackgroundColor: points.map(p=>pointColor(p.value)),
       pointRadius: 5,
       showLine:false
     }];
@@ -153,25 +148,25 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         if(!chart.chartArea) return;
         const ctx = chart.ctx;
         const ca = chart.chartArea;
-        const cx = (ca.left + ca.right)/2;
-        const cy = (ca.top + ca.bottom)/2;
-        const radiusPx = Math.min(ca.right - ca.left, ca.bottom - ca.top)/2*0.9;
+        const cx = (ca.left+ca.right)/2;
+        const cy = (ca.top+ca.bottom)/2;
+        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.9;
 
         // slices
         for(let i=0;i<NUM_WEEKS;i++){
-          const start = -Math.PI/2 + i*sliceAngle;
-          const end = start + sliceAngle;
-          ctx.beginPath();
-          ctx.moveTo(cx,cy);
+          const start=-Math.PI/2 + i*sliceAngle;
+          const end=start+sliceAngle;
+          ctx.beginPath(); ctx.moveTo(cx,cy);
           ctx.fillStyle = (i%2===0)?"#f2f2f2":"#e8e8e8";
           ctx.arc(cx,cy,radiusPx,start,end);
           ctx.closePath(); ctx.fill();
         }
 
         // rings
-        ctx.strokeStyle = "rgba(0,0,0,0.08)";
-        for(let val=5; val<=maxRange; val+=5){
-          const rPx = (val/maxRange)*radiusPx;
+        ctx.strokeStyle="rgba(0,0,0,0.08)";
+        const maxRange = Math.ceil(maxVal/5)*5||5;
+        for(let val=5;val<=maxRange;val+=5){
+          const rPx=(val/maxRange)*radiusPx;
           ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
           ctx.stroke();
         }
@@ -181,8 +176,8 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<NUM_WEEKS;i++){
           const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
-          const tx = cx + Math.cos(mid)*(radiusPx+28);
-          const ty = cy + Math.sin(mid)*(radiusPx+28);
+          const tx=cx + Math.cos(mid)*(radiusPx+28);
+          const ty=cy + Math.sin(mid)*(radiusPx+28);
           ctx.fillText("Week "+(i+1),tx,ty);
         }
 
@@ -192,7 +187,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       }
     };
 
-    const ctx = document.getElementById("dartboard").getContext("2d");
+    const ctx=document.getElementById("dartboard").getContext("2d");
     if(window._dartChart) window._dartChart.destroy();
     window._dartChart = new Chart(ctx,{
       type:'scatter',
@@ -206,16 +201,13 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           tooltip:{
             callbacks:{
               label:function(context){
-                const p = points[context.dataIndex];
+                const p=points[context.dataIndex];
                 return `Week ${p.week}: ${p.value}`;
               }
             }
           }
         },
-        scales:{
-          x:{display:false, min:-maxRange, max:maxRange},
-          y:{display:false, min:-maxRange, max:maxRange}
-        }
+        scales:{x:{display:false,min:-maxVal,max:maxVal},y:{display:false,min:-maxVal,max:maxVal}}
       },
       plugins:[dartboardBackground]
     });
