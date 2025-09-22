@@ -100,28 +100,27 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
   function initDartboard(){
     const points=[];
-    const NUM_WEEKS = 18;
-    const sliceAngle = (2*Math.PI)/NUM_WEEKS;
-    const jitterFactor = 0.7;
-    let allValues = [];
+const NUM_WEEKS = 18;
+const sliceAngle = (2*Math.PI)/NUM_WEEKS;
+const jitterFactor = 0.7;
+let allValues = [];
 
-    for(let w=1; w<=NUM_WEEKS; w++){
-      // data row = 6 + (w-1)*4 → row index 5 + (w-1)*4
-      let dataRowIndex = 5 + (w-1)*4;
-      if(dataRowIndex >= rows.length) continue;
-      let dataRow = rows[dataRowIndex];
-      let values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-      allValues = allValues.concat(values);
+for(let w=1; w<=NUM_WEEKS; w++){
+  let dataRowIndex = 5 + (w-1)*4; // row 6 for week 1, row 10 for week 2
+  if(dataRowIndex >= rows.length) continue;
+  let dataRow = rows[dataRowIndex];
+  let values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+  allValues = allValues.concat(values);
 
-      const centerAngle = -Math.PI/2 + (w-1)*sliceAngle + sliceAngle/2;
-      values.forEach(v=>{
-        const r=Math.abs(v);
-        const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle=centerAngle + jitter;
-        points.push({x:r*Math.cos(angle),y:r*Math.sin(angle),value:v,week:w});
-      });
-    }
-
+  // Correct center angle: slice 1 is at -π/2, then clockwise
+  const centerAngle = -Math.PI/2 + (w-1)*sliceAngle;
+  values.forEach(v=>{
+    const r=Math.abs(v);
+    const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
+    const angle=centerAngle + sliceAngle/2 + jitter; // place in middle of slice
+    points.push({x:r*Math.cos(angle),y:r*Math.sin(angle),value:v,week:w});
+  });
+}
     const minVal = allValues.length ? Math.min(...allValues) : 0;
     const maxVal = allValues.length ? Math.max(...allValues) : 1;
 
