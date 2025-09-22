@@ -113,14 +113,14 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       const values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
       allValues = allValues.concat(values);
 
-      const sliceStart = -Math.PI/2 + w*sliceAngle; // slice start at top (12 o'clock)
+      const sliceStart = -Math.PI/2 + w*sliceAngle; // slice start at top
       const sliceCenter = sliceStart + sliceAngle/2; // center of slice
 
       values.forEach(v=>{
         const r = Math.abs(v);
         const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle = sliceCenter + jitter; // rotate around slice center
-        points.push({x:r*Math.cos(angle), y:r*Math.sin(angle), value:v, week: w+1});
+        const angle = sliceCenter + jitter;
+        points.push({x: r*Math.cos(angle), y: -r*Math.sin(angle), value:v, week: w+1}); // <-- flip Y!
       });
     }
 
@@ -139,7 +139,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       label:"Scores",
       data: points,
       pointBackgroundColor: points.map(p=>pointColor(p.value)),
-      pointBorderColor: 'transparent', // no outline
+      pointBorderColor: 'transparent',
       pointRadius:4,
       showLine:false
     }];
