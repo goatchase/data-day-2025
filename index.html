@@ -6,24 +6,24 @@
 <title>"Data" Day Scores</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <style>
-body { font-family:'Roboto',sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
-h1 { margin:10px 0; font-size:1.8rem; color:#333; }
-button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
+  body { font-family:'Roboto',sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
+  h1 { margin:10px 0; font-size:1.8rem; color:#333; }
+  button { padding:8px 16px; font-size:1rem; margin:10px 0; cursor:pointer; }
 
-/* Modal */
-.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
-.modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:90%; max-width:650px; position:relative; }
-.close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
-#dartboard { width:100%; height:auto; display:block; margin:0 auto; }
+  /* Modal */
+  .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
+  .modal-content { background:#fff; margin:2% auto; padding:20px; border-radius:8px; width:92%; max-width:720px; position:relative; }
+  .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
+  #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
-/* Table */
-.sheet-container { width:100%; overflow-x:auto; padding:5px; }
-table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
-td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
-tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
-tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
-tbody tr:nth-child(2) { top:20px; }
-tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
+  /* Table */
+  .sheet-container { width:100%; overflow-x:auto; padding:5px; }
+  table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
+  td { text-align:center; word-break:break-word; padding:1px 6px; height:20px; background:#fff; min-width:20px; }
+  tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
+  tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
+  tbody tr:nth-child(2) { top:20px; }
+  tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </style>
 </head>
 <body>
@@ -31,10 +31,10 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 <button id="openModalBtn">More "Data"</button>
 
 <!-- Modal -->
-<div id="dartModal" class="modal">
+<div id="dartModal" class="modal" aria-hidden="true">
   <div class="modal-content">
-    <span class="close-btn">&times;</span>
-    <canvas id="dartboard" width="650" height="650"></canvas>
+    <span class="close-btn" id="closeModalBtn">&times;</span>
+    <canvas id="dartboard" width="650" height="650" role="img" aria-label="Dartboard scatter"></canvas>
   </div>
 </div>
 
@@ -45,183 +45,220 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (async function(){
-  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
-  const res = await fetch(url);
-  const text = await res.text();
-  const rows = text.trim().split("\n").map(r=>r.split(","));
-  const tbody = document.querySelector("#sheet-table tbody");
+  // CONFIG
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
+  const DATA_START_INDEX = 2;   // first data row index in rows[] (0-based). matches your prior code (i = 2)
+  const ROWS_PER_WEEK = 4;      // every 4th row corresponds to the week's numbers
+  const NUM_WEEKS = 18;         // slices 1..18
 
-  // Populate table
-  rows.forEach((row)=>{
+  // Fetch CSV
+  const res = await fetch(CSV_URL);
+  const text = await res.text();
+  // naive CSV split (keeps it consistent with your previous approach)
+  const rows = text.trim().split("\n").map(r => r.split(","));
+
+  // Populate simple table view (unchanged)
+  const tbody = document.querySelector("#sheet-table tbody");
+  rows.forEach(row => {
     const tr = document.createElement("tr");
-    row.forEach((cell,colIndex)=>{
+    row.forEach((cell, colIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
-      if(colIndex===1) td.style.fontWeight="normal";
+      if (colIndex === 1) td.style.fontWeight = "normal";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 
-  // Conditional formatting
-  for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
-  const numbers = rows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
-  const minVal=Math.min(...numbers);
-  const maxVal=Math.max(...numbers);
-  function getColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
-  for(let r=5;r<tbody.rows.length;r+=4){
-    Array.from(tbody.rows[r].cells).forEach(td=>{
-      const val=parseFloat(td.textContent);
-      if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
+  // (optional) conditional formatting from previous code (keeps old styles)
+  for (let i = 4; i < tbody.rows.length; i += 4) tbody.rows[i].style.fontStyle = "italic";
+  const numbersAll = rows.flat().map(c => parseFloat(c)).filter(v => !isNaN(v));
+  const minVal = numbersAll.length ? Math.min(...numbersAll) : 0;
+  const maxVal = numbersAll.length ? Math.max(...numbersAll) : 1;
+  function getColor(value){
+    const ratio = (value - minVal) / (maxVal - minVal || 1);
+    const r = Math.floor(255 * ratio);
+    const g = Math.floor(255 * (1 - ratio));
+    return `rgb(${r},${g},0)`;
+  }
+  for (let r = 5; r < tbody.rows.length; r += 4) {
+    Array.from(tbody.rows[r].cells).forEach(td => {
+      const val = parseFloat(td.textContent);
+      if (!isNaN(val)) { td.style.backgroundColor = getColor(val); td.style.color = "#fff"; }
     });
   }
-  for(let i=4;i<tbody.rows.length;i+=4){
-    const cur=tbody.rows[i], prev=tbody.rows[i-1];
-    if(!cur||!prev) continue;
-    for(let c=2;c<Math.min(cur.cells.length,18);c++){
-      const t1=cur.cells[c].textContent.trim().split(" ")[0];
-      const t2=prev.cells[c].textContent.trim().split(" ")[0];
-      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
+  for (let i = 4; i < tbody.rows.length; i += 4){
+    const cur = tbody.rows[i], prev = tbody.rows[i-1];
+    if (!cur || !prev) continue;
+    for (let c = 2; c < Math.min(cur.cells.length, 18); c++){
+      const t1 = cur.cells[c].textContent.trim().split(" ")[0];
+      const t2 = prev.cells[c].textContent.trim().split(" ")[0];
+      if (t1 && t1 === t2) { cur.cells[c].style.backgroundColor = "lightgreen"; prev.cells[c].style.backgroundColor = "lightgreen"; }
     }
   }
 
-  // --- Dartboard modal ---
-  const modal=document.getElementById("dartModal");
-  const openBtn=document.getElementById("openModalBtn");
-  const closeBtn=document.querySelector(".close-btn");
-  let chartInitialized=false;
+  // --- Modal / chart handling ---
+  const modal = document.getElementById("dartModal");
+  const openBtn = document.getElementById("openModalBtn");
+  const closeBtn = document.getElementById("closeModalBtn");
+  let chartInitialized = false;
 
-  openBtn.onclick=()=>{ modal.style.display="block"; if(!chartInitialized){ initDartboard(); chartInitialized=true; } };
-  closeBtn.onclick=()=>{ modal.style.display="none"; };
-  window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
+  openBtn.onclick = () => {
+    modal.style.display = "block";
+    modal.setAttribute("aria-hidden", "false");
+    // init chart when modal becomes visible so Chart.js can compute sizes
+    if (!chartInitialized) { initDartboard(); chartInitialized = true; }
+    else if (window._dartChart) { window._dartChart.resize(); }
+  };
+  closeBtn.onclick = () => { modal.style.display = "none"; modal.setAttribute("aria-hidden","true"); };
+  window.onclick = (e) => { if (e.target === modal) { modal.style.display = "none"; modal.setAttribute("aria-hidden","true"); } };
 
   function initDartboard(){
-    // --- Build weekMap from table rows ---
+    // Build weekMap by picking every 4th row starting at DATA_START_INDEX
+    // weekMap[weekNumber] = array of numeric values for that week
     const weekMap = {};
-    for (let i = 2; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || row.length === 0) continue;
-      const weekLabel = (row[0] || "").trim();
-      if (!weekLabel) continue;
-
-      // Expecting "Week 1", "Week 2", ...
-      const numbers = row.slice(1).map(v => parseFloat(v)).filter(v => !isNaN(v));
-      if (numbers.length) {
-        weekMap[weekLabel] = numbers;
-      }
+    for (let w = 1; w <= NUM_WEEKS; w++){
+      const rowIndex = DATA_START_INDEX + (w - 1) * ROWS_PER_WEEK;
+      if (rowIndex >= rows.length) { weekMap[w] = []; continue; }
+      const row = rows[rowIndex] || [];
+      // values are in columns 1..end (first column is week id)
+      const values = row.slice(1).map(v => parseFloat(v)).filter(n => !isNaN(n));
+      weekMap[w] = values;
     }
 
-    // --- Dartboard setup ---
-    const sliceCount = 18;
-    const sliceAngle = (2 * Math.PI) / sliceCount;
+    // Prepare plotting scale
     const allValues = [].concat(...Object.values(weekMap));
-    const maxValue = Math.max(1, ...allValues.map(Math.abs));
-    const maxRange = Math.ceil(maxValue / 5) * 5;
+    const maxValue = allValues.length ? Math.max(1, ...allValues.map(Math.abs)) : 1;
+    const maxRange = Math.ceil(maxValue / 5) * 5 || 5; // nice round top of the rings
+    const sliceCount = NUM_WEEKS;
+    const sliceAngle = (2 * Math.PI) / sliceCount;
     const jitterFactor = 0.7;
 
-    // Create points
+    // Build points (data-space coordinates)
     const points = [];
-    for (let i = 0; i < sliceCount; i++) {
-      const weekLabel = `Week ${i+1}`;
-      const vals = weekMap[weekLabel] || [];
-      const centerAngle = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
-
+    for (let i = 0; i < sliceCount; i++){
+      const weekNum = i + 1;
+      const vals = weekMap[weekNum] || [];
+      const centerAngle = -Math.PI/2 + i * sliceAngle + sliceAngle / 2;
       vals.forEach(v => {
-        const r = Math.abs(v);
+        const r = Math.abs(v); // data radial distance
         const jitter = (Math.random() - 0.5) * sliceAngle * jitterFactor;
         const angle = centerAngle + jitter;
         points.push({
           x: r * Math.cos(angle),
           y: r * Math.sin(angle),
           value: v,
-          week: weekLabel
+          week: weekNum
         });
       });
     }
 
+    // Chart dataset
     const datasets = [{
-      label:"Scores",
-      data:points,
-      pointBackgroundColor:"#3333ff",
-      pointRadius:4,
-      showLine:false
+      label: "Week scores",
+      data: points,
+      pointRadius: 5,
+      pointBackgroundColor: points.map(p => '#2b6cff'),
+      showLine: false
     }];
 
-    // --- Custom background plugin ---
+    // Custom plugin to draw dartboard slices + rings + labels
     const dartboardBackground = {
-      id:"dartboardBackground",
+      id: 'dartboardBackground',
       beforeDraw(chart){
+        if (!chart.chartArea) return; // safety
         const ctx = chart.ctx;
         const ca = chart.chartArea;
-        const cx = (ca.left+ca.right)/2;
-        const cy = (ca.top+ca.bottom)/2;
-        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2 * 0.9;
+        const cx = (ca.left + ca.right) / 2;
+        const cy = (ca.top + ca.bottom) / 2;
+        const radiusPx = Math.min(ca.right - ca.left, ca.bottom - ca.top) / 2 * 0.9;
 
-        // Draw slices
-        for(let i=0;i<sliceCount;i++){
-          const start = -Math.PI/2 + i*sliceAngle;
+        // Clear area (optional)
+        // ctx.clearRect(ca.left, ca.top, ca.right-ca.left, ca.bottom-ca.top);
+
+        // slices
+        for (let i = 0; i < sliceCount; i++){
+          const start = -Math.PI/2 + i * sliceAngle;
           const end = start + sliceAngle;
           ctx.beginPath();
-          ctx.moveTo(cx,cy);
-          ctx.fillStyle = (i%2===0) ? "#f2f2f2" : "#e8e8e8";
-          ctx.arc(cx,cy,radiusPx,start,end);
+          ctx.moveTo(cx, cy);
+          ctx.fillStyle = (i % 2 === 0) ? "#f2f2f2" : "#e8e8e8";
+          ctx.arc(cx, cy, radiusPx, start, end);
           ctx.closePath();
           ctx.fill();
-        }
 
-        // Rings
-        for(let val=5;val<=maxRange;val+=5){
-          const rPx = (val/maxRange)*radiusPx;
+          // divider line
           ctx.beginPath();
-          ctx.arc(cx,cy,rPx,0,2*Math.PI);
-          ctx.strokeStyle="rgba(0,0,0,0.1)";
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(start) * radiusPx, cy + Math.sin(start) * radiusPx);
+          ctx.strokeStyle = "rgba(0,0,0,0.08)";
           ctx.stroke();
         }
 
-        // Week labels (1–18)
-        ctx.fillStyle="#000";
-        ctx.font="bold 14px Roboto";
-        ctx.textAlign="center";
-        ctx.textBaseline="middle";
-        for(let i=0;i<sliceCount;i++){
-          const mid = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
-          const tx = cx + Math.cos(mid)*(radiusPx+25);
-          const ty = cy + Math.sin(mid)*(radiusPx+25);
-          ctx.fillText(i+1,tx,ty);
+        // concentric rings (value markers)
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(0,0,0,0.08)";
+        for (let val = 5; val <= maxRange; val += 5){
+          const rPx = (val / maxRange) * radiusPx;
+          ctx.beginPath();
+          ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
+          ctx.stroke();
         }
 
-        // Bullseye
+        // week labels (we draw "Week 1" etc—adjust if you want just numbers)
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 13px Roboto, Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (let i = 0; i < sliceCount; i++){
+          const mid = -Math.PI/2 + i * sliceAngle + sliceAngle / 2;
+          const tx = cx + Math.cos(mid) * (radiusPx + 28);
+          const ty = cy + Math.sin(mid) * (radiusPx + 28);
+          const label = "Week " + (i + 1);
+          ctx.fillText(label, tx, ty);
+        }
+
+        // bullseye
         ctx.beginPath();
-        ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
-        ctx.fillStyle="#222";
+        ctx.arc(cx, cy, Math.max(3, radiusPx * 0.03), 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
         ctx.fill();
       }
     };
 
+    // Create Chart when modal is visible (we're inside init called from open)
     const ctx = document.getElementById("dartboard").getContext("2d");
-    window._dartChart = new Chart(ctx,{
-      type:"scatter",
-      data:{datasets},
-      options:{
-        responsive:true,
-        aspectRatio:1,
-        plugins:{
-          legend:{display:false},
-          tooltip:{
-            callbacks:{
-              label:function(context){
+    // Destroy previous chart if any
+    if (window._dartChart && typeof window._dartChart.destroy === "function") {
+      window._dartChart.destroy();
+      window._dartChart = null;
+    }
+
+    window._dartChart = new Chart(ctx, {
+      type: 'scatter',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        animation: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
                 const p = points[context.dataIndex];
-                return `${p.week}: ${p.value}`;
+                return `Week ${p.week}: ${p.value}`;
               }
             }
           }
         },
-        scales:{
-          x:{display:false,min:-maxRange,max:maxRange},
-          y:{display:false,min:-maxRange,max:maxRange}
+        scales: {
+          x: { type: 'linear', display: false, min: -maxRange, max: maxRange },
+          y: { type: 'linear', display: false, min: -maxRange, max: maxRange }
         }
       },
-      plugins:[dartboardBackground]
+      plugins: [dartboardBackground]
     });
   }
 })();
