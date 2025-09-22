@@ -96,45 +96,48 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
 
   function initDartboard(){
-    // Collect last row for each week
+    // --- Build weekMap from table rows ---
     const weekMap = {};
-    for(let i=2;i<rows.length;i++){
+    for (let i = 2; i < rows.length; i++) {
       const row = rows[i];
-      if(!row || row.length === 0) continue;
-      const week = (row[0] || "").trim();
-      const numbers = row.slice(1).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-      if(week && numbers.length) weekMap[week] = numbers; // overwrite → last row kept
+      if (!row || row.length === 0) continue;
+      const weekLabel = (row[0] || "").trim();
+      if (!weekLabel) continue;
+
+      // Expecting "Week 1", "Week 2", ...
+      const numbers = row.slice(1).map(v => parseFloat(v)).filter(v => !isNaN(v));
+      if (numbers.length) {
+        weekMap[weekLabel] = numbers;
+      }
     }
 
-    // Sort weeks numerically
-    const weekKeys = Object.keys(weekMap).sort((a,b)=>{
-      return parseInt(a.replace(/\D/g,"")) - parseInt(b.replace(/\D/g,""));
-    });
-
-    const sliceCount = weekKeys.length;
-    const sliceAngle = (2*Math.PI)/sliceCount;
+    // --- Dartboard setup ---
+    const sliceCount = 18;
+    const sliceAngle = (2 * Math.PI) / sliceCount;
     const allValues = [].concat(...Object.values(weekMap));
     const maxValue = Math.max(1, ...allValues.map(Math.abs));
-    const maxRange = Math.ceil(maxValue/5)*5;
+    const maxRange = Math.ceil(maxValue / 5) * 5;
     const jitterFactor = 0.7;
 
-    // Build scatter points
+    // Create points
     const points = [];
-    weekKeys.forEach((weekKey,i)=>{
-      const vals = weekMap[weekKey];
+    for (let i = 0; i < sliceCount; i++) {
+      const weekLabel = `Week ${i+1}`;
+      const vals = weekMap[weekLabel] || [];
       const centerAngle = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
-      vals.forEach(v=>{
+
+      vals.forEach(v => {
         const r = Math.abs(v);
-        const jitter = (Math.random()-0.5) * sliceAngle * jitterFactor;
+        const jitter = (Math.random() - 0.5) * sliceAngle * jitterFactor;
         const angle = centerAngle + jitter;
         points.push({
-          x: r*Math.cos(angle),
-          y: r*Math.sin(angle),
+          x: r * Math.cos(angle),
+          y: r * Math.sin(angle),
           value: v,
-          week: weekKey
+          week: weekLabel
         });
       });
-    });
+    }
 
     const datasets = [{
       label:"Scores",
@@ -144,52 +147,59 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       showLine:false
     }];
 
-    // Custom dartboard background
+    // --- Custom background plugin ---
     const dartboardBackground = {
       id:"dartboardBackground",
       beforeDraw(chart){
-        const ctx=chart.ctx;
-        const ca=chart.chartArea;
-        const cx=(ca.left+ca.right)/2;
-        const cy=(ca.top+ca.bottom)/2;
-        const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.9;
+        const ctx = chart.ctx;
+        const ca = chart.chartArea;
+        const cx = (ca.left+ca.right)/2;
+        const cy = (ca.top+ca.bottom)/2;
+        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2 * 0.9;
 
-        // slices
+        // Draw slices
         for(let i=0;i<sliceCount;i++){
-          const start=-Math.PI/2+i*sliceAngle;
-          const end=start+sliceAngle;
-          ctx.beginPath(); ctx.moveTo(cx,cy);
-          ctx.fillStyle=(i%2===0)?"#f2f2f2":"#e8e8e8";
+          const start = -Math.PI/2 + i*sliceAngle;
+          const end = start + sliceAngle;
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.fillStyle = (i%2===0) ? "#f2f2f2" : "#e8e8e8";
           ctx.arc(cx,cy,radiusPx,start,end);
-          ctx.closePath(); ctx.fill();
+          ctx.closePath();
+          ctx.fill();
         }
 
-        // rings
+        // Rings
         for(let val=5;val<=maxRange;val+=5){
-          const rPx=(val/maxRange)*radiusPx;
-          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
+          const rPx = (val/maxRange)*radiusPx;
+          ctx.beginPath();
+          ctx.arc(cx,cy,rPx,0,2*Math.PI);
           ctx.strokeStyle="rgba(0,0,0,0.1)";
           ctx.stroke();
         }
 
-        // week labels
-        ctx.fillStyle="#000"; ctx.font="bold 16px Roboto";
-        ctx.textAlign="center"; ctx.textBaseline="middle";
-        weekKeys.forEach((wk,i)=>{
-          const mid=-Math.PI/2+i*sliceAngle+sliceAngle/2;
-          const tx=cx+Math.cos(mid)*(radiusPx+30);
-          const ty=cy+Math.sin(mid)*(radiusPx+30);
-          ctx.fillText(wk,tx,ty);
-        });
+        // Week labels (1–18)
+        ctx.fillStyle="#000";
+        ctx.font="bold 14px Roboto";
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        for(let i=0;i<sliceCount;i++){
+          const mid = -Math.PI/2 + i*sliceAngle + sliceAngle/2;
+          const tx = cx + Math.cos(mid)*(radiusPx+25);
+          const ty = cy + Math.sin(mid)*(radiusPx+25);
+          ctx.fillText(i+1,tx,ty);
+        }
 
-        // bullseye
-        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
-        ctx.fillStyle="#222"; ctx.fill();
+        // Bullseye
+        ctx.beginPath();
+        ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
+        ctx.fillStyle="#222";
+        ctx.fill();
       }
     };
 
-    const ctx=document.getElementById("dartboard").getContext("2d");
-    window._dartChart=new Chart(ctx,{
+    const ctx = document.getElementById("dartboard").getContext("2d");
+    window._dartChart = new Chart(ctx,{
       type:"scatter",
       data:{datasets},
       options:{
@@ -200,7 +210,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           tooltip:{
             callbacks:{
               label:function(context){
-                const p=points[context.dataIndex];
+                const p = points[context.dataIndex];
                 return `${p.week}: ${p.value}`;
               }
             }
