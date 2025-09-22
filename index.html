@@ -193,7 +193,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           ctx.stroke();
         }
 
-        // week labels with averages
+        // week labels with averages (italic)
         ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
         ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<NUM_WEEKS;i++){
@@ -201,7 +201,11 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           const tx = cx + Math.cos(mid)*(radiusPx+25);
           const ty = cy + Math.sin(mid)*(radiusPx+25);
           ctx.fillText("Week "+(i+1),tx,ty);
-          if(weekAvgs[i]) ctx.fillText("Avg: "+weekAvgs[i]+".0",tx,ty+15);
+          if(weekAvgs[i]){
+            ctx.font = "italic 12px Roboto";
+            ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15);
+            ctx.font = "bold 12px Roboto";
+          }
         }
 
         // bullseye
@@ -223,7 +227,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
             callbacks:{
               label:function(context){
                 const p=points[context.dataIndex];
-                return `Week ${p.week}: ${p.value}.0`;
+                return `Week ${p.week}: ${p.value}`;
               }
             }
           }
@@ -236,11 +240,11 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       plugins:[dartboardBackground]
     });
 
-    // Min / Avg / Max at top, integers, trailing zero
+    // Min / Avg / Max at top, integers
     const totalAvg = Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
     const totalMin = Math.round(Math.min(...allValues));
     const totalMax = Math.round(Math.max(...allValues));
-    statsDiv.innerHTML = `<strong>Min: ${totalMin}.0 &nbsp;&nbsp; Avg: ${totalAvg}.0 &nbsp;&nbsp; Max: ${totalMax}.0</strong>`;
+    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
   }
 })();
 </script>
