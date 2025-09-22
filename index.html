@@ -106,18 +106,20 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     let allValues = [];
 
     for(let w=0; w<NUM_WEEKS; w++){
-      // Week 1 data -> row 6, Week 2 -> row 10, etc.
+      // row 6 -> week 1, row 10 -> week 2, row 14 -> week3 ...
       const dataRowIndex = 5 + w*4; 
       if(dataRowIndex >= rows.length) continue;
       const dataRow = rows[dataRowIndex];
       const values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
       allValues = allValues.concat(values);
 
-      const sliceStart = -Math.PI/2 + w*sliceAngle;
+      const sliceStart = -Math.PI/2 + w*sliceAngle; // slice start at top (12 o'clock)
+      const sliceCenter = sliceStart + sliceAngle/2; // center of slice
+
       values.forEach(v=>{
         const r = Math.abs(v);
         const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle = sliceStart + sliceAngle/2 + jitter;
+        const angle = sliceCenter + jitter; // rotate around slice center
         points.push({x:r*Math.cos(angle), y:r*Math.sin(angle), value:v, week: w+1});
       });
     }
@@ -177,7 +179,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
           const tx = cx + Math.cos(mid)*(radiusPx+25);
           const ty = cy + Math.sin(mid)*(radiusPx+25);
-          ctx.fillText("Week "+(i+1),tx,ty); // correct header
+          ctx.fillText("Week "+(i+1),tx,ty);
         }
 
         // bullseye
