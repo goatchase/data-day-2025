@@ -40,10 +40,16 @@ button:hover {
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
 table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
 td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
+
+/* Main table hover and sticky rows */
 tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
 tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
 tbody tr:nth-child(2) { top:20px; }
 tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
+
+/* Standings modal table */
+#standings-table td { border:none; padding:4px; }
+#standings-table { table-layout:fixed; width:100%; }
 </style>
 </head>
 <body>
@@ -255,12 +261,12 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         row.forEach((cell, colIndex) => {
           const td = document.createElement("td");
           td.textContent = cell;
-          // Alignment
           if (colIndex === 0 || colIndex === 4) td.style.textAlign = "left";
           else td.style.textAlign = "right";
           tr.appendChild(td);
         });
-        // Column checks for highlighting
+
+        // Conditional highlighting for columns 2 vs 3 and 6 vs 7
         if (row.length > 2) {
           if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
           else tr.cells[1].style.backgroundColor = "#f28c8c";
@@ -269,8 +275,10 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
           else tr.cells[5].style.backgroundColor = "#f28c8c";
         }
-        // Borders: under first row and every 5 rows
-        if (rowIndex === 0 || (rowIndex + 1) % 5 === 0) tr.style.borderBottom = "1px solid #333";
+
+        // Highlight rows 1,6,11,16… (0-indexed: 0,5,10,15…)
+        if (rowIndex % 5 === 0) tr.style.backgroundColor = "#f2f2f2";
+
         standingsTbody.appendChild(tr);
       });
     }
