@@ -43,6 +43,7 @@ td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; bac
 tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
 tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
 tbody tr:nth-child(2) { top:20px; }
+tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </style>
 </head>
 <body>
@@ -99,6 +100,28 @@ tbody tr:nth-child(2) { top:20px; }
     tbody.appendChild(tr);
   });
 
+  // ===== Conditional formatting =====
+  for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
+  const numbers = mainRows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
+  const minVal=Math.min(...numbers);
+  const maxVal=Math.max(...numbers);
+  function getColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
+  for(let r=5;r<tbody.rows.length;r+=4){
+    Array.from(tbody.rows[r].cells).forEach(td=>{
+      const val=parseFloat(td.textContent);
+      if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
+    });
+  }
+  for(let i=4;i<tbody.rows.length;i+=4){
+    const cur=tbody.rows[i], prev=tbody.rows[i-1];
+    if(!cur||!prev) continue;
+    for(let c=2;c<Math.min(cur.cells.length,18);c++){
+      const t1=cur.cells[c].textContent.trim().split(" ")[0];
+      const t2=prev.cells[c].textContent.trim().split(" ")[0];
+      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
+    }
+  }
+
   // ===== Dartboard Modal =====
   const dartModal=document.getElementById("dartModal");
   const openDartBtn=document.getElementById("openDartModalBtn");
@@ -116,6 +139,7 @@ tbody tr:nth-child(2) { top:20px; }
   function initDartboard(){
     const points=[], weekAvgs=[], NUM_WEEKS=18, sliceAngle=(2*Math.PI)/NUM_WEEKS, jitterFactor=0.7;
     let allValues=[];
+
     for(let w=0; w<NUM_WEEKS; w++){
       const dataRowIndex = 5 + w*4; 
       if(dataRowIndex >= mainRows.length) continue;
@@ -126,6 +150,7 @@ tbody tr:nth-child(2) { top:20px; }
       const avgWeek = Math.round(values.reduce((a,b)=>a+b,0)/values.length);
       weekAvgs.push(avgWeek);
       const sliceCenter = -Math.PI/2 + w*sliceAngle + sliceAngle/2;
+
       values.forEach(v=>{
         const r = Math.abs(v);
         const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
@@ -235,7 +260,7 @@ tbody tr:nth-child(2) { top:20px; }
           else td.style.textAlign = "right";
           tr.appendChild(td);
         });
-        // Conditional highlights
+        // Column checks for highlighting
         if (row.length > 2) {
           if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
           else tr.cells[1].style.backgroundColor = "#f28c8c";
@@ -244,8 +269,8 @@ tbody tr:nth-child(2) { top:20px; }
           if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
           else tr.cells[5].style.backgroundColor = "#f28c8c";
         }
-        // Highlight rows 1,6,11,16…
-        if (rowIndex % 5 === 0) tr.style.backgroundColor = "#f2f2f2";
+        // Borders: under first row and every 5 rows
+        if (rowIndex === 0 || (rowIndex + 1) % 5 === 0) tr.style.borderBottom = "1px solid #333";
         standingsTbody.appendChild(tr);
       });
     }
