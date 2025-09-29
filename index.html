@@ -13,28 +13,33 @@ button {
   font-size: 1rem;
   font-weight: 500;
   color: #fff;
-  background: linear-gradient(to bottom, #007aff, #0051a8);
+  background: linear-gradient(to bottom, #007aff, #0051a8); /* iOS blue gradient */
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
+
 button:hover {
   background: linear-gradient(to bottom, #0051a8, #007aff);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
+
 /* Modal */
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
-.modal-content { background:#fff; margin:2% auto; padding:10px; border-radius:8px; width:90%; max-width:800px; position:relative; }
+.modal-content { background:#fff; margin:2% auto; padding:10px; border-radius:8px; width:85%; max-width:650px; position:relative; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
 
-/* Dartboard */
 #dartStats { margin-bottom:10px; font-size:1rem; color:#333; font-weight:bold; text-align:center; }
+
+/* Modal header */
 #dartHeader { text-align:center; margin-bottom:5px; }
 #dartHeader h2 { margin:0; font-weight:bold; }
 #dartHeader p { margin:0; font-style:italic; font-size:0.9rem; color:#555; }
+
+/* Canvas */
 #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
 /* Table */
@@ -49,10 +54,9 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </head>
 <body>
 <h1>"Data" Day Scores</h1>
-<button id="openModalBtn">Cheaccuracy</button>
-<button id="openStandingsBtn">Standings</button>
+<button id="openModalBtn">More "Data"</button>
 
-<!-- Cheaccuracy Modal -->
+<!-- Modal -->
 <div id="dartModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
@@ -65,17 +69,6 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   </div>
 </div>
 
-<!-- Standings Modal -->
-<div id="standingsModal" class="modal">
-  <div class="modal-content">
-    <span class="close-btn" id="closeStandings">&times;</span>
-    <h2>Standings</h2>
-    <div class="sheet-container">
-      <table id="standings-table"><thead></thead><tbody></tbody></table>
-    </div>
-  </div>
-</div>
-
 <div class="sheet-container">
   <table id="sheet-table"><thead></thead><tbody></tbody></table>
 </div>
@@ -83,28 +76,29 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (async function(){
-  // --- Main baseline CSV for table ---
   const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
   const res = await fetch(url);
   const text = await res.text();
   const rows = text.trim().split("\n").map(r=>r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
 
+  // Populate table
   rows.forEach((row)=>{
-    const tr=document.createElement("tr");
+    const tr = document.createElement("tr");
     row.forEach((cell,colIndex)=>{
-      const td=document.createElement("td");
-      td.textContent=cell;
+      const td = document.createElement("td");
+      td.textContent = cell;
       if(colIndex===1) td.style.fontWeight="normal";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 
-  // Conditional formatting (baseline)
+  // Conditional formatting
   for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
   const numbers = rows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
-  const minVal=Math.min(...numbers), maxVal=Math.max(...numbers);
+  const minVal=Math.min(...numbers);
+  const maxVal=Math.max(...numbers);
   function getColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
   for(let r=5;r<tbody.rows.length;r+=4){
     Array.from(tbody.rows[r].cells).forEach(td=>{
@@ -112,105 +106,163 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
     });
   }
+  for(let i=4;i<tbody.rows.length;i+=4){
+    const cur=tbody.rows[i], prev=tbody.rows[i-1];
+    if(!cur||!prev) continue;
+    for(let c=2;c<Math.min(cur.cells.length,18);c++){
+      const t1=cur.cells[c].textContent.trim().split(" ")[0];
+      const t2=prev.cells[c].textContent.trim().split(" ")[0];
+      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
+    }
+  }
 
-  // --- Cheaccuracy Modal ---
-  const dartModal=document.getElementById("dartModal");
+  // Dartboard modal
+  const modal=document.getElementById("dartModal");
   const openBtn=document.getElementById("openModalBtn");
-  const closeBtn=dartModal.querySelector(".close-btn");
+  const closeBtn=document.querySelector(".close-btn");
   const statsDiv = document.getElementById("dartStats");
   let chartInitialized=false;
 
   openBtn.onclick=()=>{
-    dartModal.style.display="block";
+    modal.style.display="block";
     if(!chartInitialized){ initDartboard(); chartInitialized=true; }
   };
-  closeBtn.onclick=()=>{ dartModal.style.display="none"; };
-  window.onclick=(e)=>{ if(e.target===dartModal) dartModal.style.display="none"; };
+  closeBtn.onclick=()=>{ modal.style.display="none"; };
+  window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
 
   function initDartboard(){
-    const points=[], weekAvgs=[], NUM_WEEKS=18, sliceAngle=(2*Math.PI)/NUM_WEEKS, jitterFactor=0.7;
-    let allValues=[];
+    const points=[];
+    const weekAvgs = [];
+    const NUM_WEEKS = 18;
+    const sliceAngle = (2*Math.PI)/NUM_WEEKS;
+    const jitterFactor = 0.7;
+    let allValues = [];
+
     for(let w=0; w<NUM_WEEKS; w++){
-      const dataRowIndex=5+w*4; if(dataRowIndex>=rows.length) continue;
-      const dataRow=rows[dataRowIndex];
-      const values=dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-      if(values.length===0) continue; allValues=allValues.concat(values);
-      const avgWeek=Math.round(values.reduce((a,b)=>a+b,0)/values.length); weekAvgs.push(avgWeek);
-      const sliceStart=-Math.PI/2+w*sliceAngle; const sliceCenter=sliceStart+sliceAngle/2;
+      // row 6 -> week 1, row 10 -> week 2, row 14 -> week3 ...
+      const dataRowIndex = 5 + w*4; 
+      if(dataRowIndex >= rows.length) continue;
+      const dataRow = rows[dataRowIndex];
+      const values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+      if(values.length===0) continue;
+      allValues = allValues.concat(values);
+
+      // store weekly average
+      const avgWeek = Math.round(values.reduce((a,b)=>a+b,0)/values.length);
+      weekAvgs.push(avgWeek);
+
+      const sliceStart = -Math.PI/2 + w*sliceAngle;
+      const sliceCenter = sliceStart + sliceAngle/2;
+
       values.forEach(v=>{
-        const r=Math.abs(v), jitter=(Math.random()-0.5)*sliceAngle*jitterFactor, angle=sliceCenter+jitter;
-        points.push({x:r*Math.cos(angle),y:-r*Math.sin(angle),value:v,week:w+1});
+        const r = Math.abs(v);
+        const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
+        const angle = sliceCenter + jitter;
+        points.push({x: r*Math.cos(angle), y: -r*Math.sin(angle), value:v, week: w+1});
       });
     }
 
-    const minVal=allValues.length?Math.min(...allValues):0;
-    const maxVal=allValues.length?Math.max(...allValues):1;
-    const maxRange=Math.ceil(maxVal/5)*5||5;
-    function pointColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
+    const minVal = allValues.length ? Math.min(...allValues) : 0;
+    const maxVal = allValues.length ? Math.max(...allValues) : 1;
+    const maxRange = Math.ceil(maxVal/5)*5 || 5;
 
-    const datasets=[{label:"Scores", data:points, pointBackgroundColor:points.map(p=>pointColor(p.value)), pointBorderColor:'transparent', pointRadius:4, showLine:false}];
+    function pointColor(value){ 
+      const ratio=(value-minVal)/(maxVal-minVal);
+      const r=Math.floor(255*ratio);
+      const g=Math.floor(255*(1-ratio));
+      return `rgb(${r},${g},0)`;
+    }
 
-    const dartboardBackground={
+    const datasets=[{
+      label:"Scores",
+      data: points,
+      pointBackgroundColor: points.map(p=>pointColor(p.value)),
+      pointBorderColor: 'transparent',
+      pointRadius:4,
+      showLine:false
+    }];
+
+    const dartboardBackground = {
       id:"dartboardBackground",
       beforeDraw(chart){
         if(!chart.chartArea) return;
-        const ctx=chart.ctx, ca=chart.chartArea;
-        const cx=(ca.left+ca.right)/2, cy=(ca.top+ca.bottom)/2;
-        const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
+        const ctx = chart.ctx;
+        const ca = chart.chartArea;
+        const cx = (ca.left+ca.right)/2;
+        const cy = (ca.top+ca.bottom)/2;
+        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
+
+        // slices
         for(let i=0;i<NUM_WEEKS;i++){
-          const start=-Math.PI/2+i*sliceAngle, end=start+sliceAngle;
+          const start=-Math.PI/2 + i*sliceAngle;
+          const end=start+sliceAngle;
           ctx.beginPath(); ctx.moveTo(cx,cy);
-          ctx.fillStyle=(i%2===0)?"#f2f2f2":"#e8e8e8";
-          ctx.arc(cx,cy,radiusPx,start,end); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = (i%2===0)?"#f2f2f2":"#e8e8e8";
+          ctx.arc(cx,cy,radiusPx,start,end);
+          ctx.closePath(); ctx.fill();
         }
+
+        // rings
         ctx.strokeStyle="rgba(0,0,0,0.1)";
-        for(let val=5;val<=maxRange;val+=5){
-          const rPx=(val/maxRange)*radiusPx;
-          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI); ctx.stroke();
+        for(let val=5; val<=maxRange; val+=5){
+          const rPx = (val/maxRange)*radiusPx;
+          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
+          ctx.stroke();
         }
-        ctx.fillStyle="#000"; ctx.font="bold 12px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
+
+        // week labels with averages (italic)
+        ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
+        ctx.textAlign="center"; ctx.textBaseline="middle";
         for(let i=0;i<NUM_WEEKS;i++){
-          const mid=-Math.PI/2+i*sliceAngle+sliceAngle/2;
-          const tx=cx+Math.cos(mid)*(radiusPx+25), ty=cy+Math.sin(mid)*(radiusPx+25);
+          const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
+          const tx = cx + Math.cos(mid)*(radiusPx+25);
+          const ty = cy + Math.sin(mid)*(radiusPx+25);
           ctx.fillText("Week "+(i+1),tx,ty);
-          if(weekAvgs[i]){ ctx.font="italic 12px Roboto"; ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15); ctx.font="bold 12px Roboto"; }
+          if(weekAvgs[i]){
+            ctx.font = "italic 12px Roboto";
+            ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15);
+            ctx.font = "bold 12px Roboto";
+          }
         }
-        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
+
+        // bullseye
+        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
+        ctx.fillStyle="#222"; ctx.fill();
       }
     };
 
     const ctx=document.getElementById("dartboard").getContext("2d");
-    new Chart(ctx,{type:"scatter", data:{datasets}, options:{responsive:true, aspectRatio:1, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(context){const p=points[context.dataIndex]; return `Week ${p.week}: ${p.value}`;}}}}, scales:{x:{display:false,min:-maxRange,max:maxRange}, y:{display:false,min:-maxRange,max:maxRange}}}, plugins:[dartboardBackground]});
-
-    const totalAvg=Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
-    const totalMin=Math.round(Math.min(...allValues));
-    const totalMax=Math.round(Math.max(...allValues));
-    statsDiv.innerHTML=`<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
-  }
-
-  // --- Standings Modal ---
-  const standingsModal=document.getElementById("standingsModal");
-  const openStandingsBtn=document.getElementById("openStandingsBtn");
-  const closeStandingsBtn=document.getElementById("closeStandings");
-
-  openStandingsBtn.onclick=async()=>{
-    standingsModal.style.display="block";
-    const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?gid=812722975&single=true&output=csv";
-    const res=await fetch(url); const text=await res.text();
-    const rows=text.trim().split("\n").map(r=>r.split(","));
-    const tbody=document.querySelector("#standings-table tbody");
-    tbody.innerHTML="";
-    rows.forEach(row=>{
-      const tr=document.createElement("tr");
-      row.forEach(cell=>{
-        const td=document.createElement("td"); td.textContent=cell; tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
+    window._dartChart = new Chart(ctx,{
+      type:"scatter",
+      data:{datasets},
+      options:{
+        responsive:true,
+        aspectRatio:1,
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              label:function(context){
+                const p=points[context.dataIndex];
+                return `Week ${p.week}: ${p.value}`;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{display:false,min:-maxRange,max:maxRange},
+          y:{display:false,min:-maxRange,max:maxRange}
+        }
+      },
+      plugins:[dartboardBackground]
     });
-  };
-  closeStandingsBtn.onclick=()=>{ standingsModal.style.display="none"; };
-  window.onclick=(e)=>{ if(e.target===standingsModal) standingsModal.style.display="none"; };
 
+    // Min / Avg / Max at top, integers
+    const totalAvg = Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
+    const totalMin = Math.round(Math.min(...allValues));
+    const totalMax = Math.round(Math.max(...allValues));
+    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
+  }
 })();
 </script>
 </body>
