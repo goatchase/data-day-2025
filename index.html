@@ -13,63 +13,62 @@ button {
   font-size: 1rem;
   font-weight: 500;
   color: #fff;
-  background: linear-gradient(to bottom, #007aff, #0051a8);
+  background: linear-gradient(to bottom, #007aff, #0051a8); /* iOS blue gradient */
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  margin: 5px;
 }
+
 button:hover {
   background: linear-gradient(to bottom, #0051a8, #007aff);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
+
 /* Modal */
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
-.modal-content { background:#fff; margin:2% auto; padding:10px; border-radius:8px; width:90%; max-width:900px; max-height:90%; overflow:auto; position:relative; }
+.modal-content { background:#fff; margin:2% auto; padding:10px; border-radius:8px; width:85%; max-width:650px; position:relative; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
+
+#dartStats { margin-bottom:10px; font-size:1rem; color:#333; font-weight:bold; text-align:center; }
+
+/* Modal header */
+#dartHeader { text-align:center; margin-bottom:5px; }
+#dartHeader h2 { margin:0; font-weight:bold; }
+#dartHeader p { margin:0; font-style:italic; font-size:0.9rem; color:#555; }
+
+/* Canvas */
+#dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
 /* Table */
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
 table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
-td, th { text-align:center; word-break:break-word; padding:4px 6px; border:1px solid #ddd; }
-tbody tr:nth-child(even) { background-color:#f9f9f9; }
-thead { background:#f2f2f2; font-weight:bold; position:sticky; top:0; z-index:2; }
-
-/* Dartboard canvas */
-#dartboard { width:100%; height:auto; display:block; margin:0 auto; }
+td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
+tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
+tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
+tbody tr:nth-child(2) { top:20px; }
+tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </style>
 </head>
 <body>
 <h1>"Data" Day Scores</h1>
-<button id="openModalBtn">Cheaccuracy</button>
-<button id="openStandingsBtn">Standings</button>
+<button id="openModalBtn">More "Data"</button>
 
-<!-- Cheaccuracy Modal -->
+<!-- Modal -->
 <div id="dartModal" class="modal">
   <div class="modal-content">
-    <span class="close-btn" id="closeDart">&times;</span>
-    <h2>Cheaccuracy</h2>
-    <p>Accuracy of each game - Cheah's data vs. result</p>
-    <canvas id="dartboard" width="700" height="700"></canvas>
-    <div id="dartStats" style="margin-top:10px;font-weight:bold;"></div>
-  </div>
-</div>
-
-<!-- Standings Modal -->
-<div id="standingsModal" class="modal">
-  <div class="modal-content">
-    <span class="close-btn" id="closeStandings">&times;</span>
-    <h2 style="margin-bottom:10px;">Standings</h2>
-    <div class="sheet-container">
-      <table id="standings-table"><thead></thead><tbody></tbody></table>
+    <span class="close-btn">&times;</span>
+    <div id="dartHeader">
+      <h2>Cheaccuracy</h2>
+      <p>Accuracy of each game - Cheah's data vs. result</p>
     </div>
+    <div id="dartStats"></div>
+    <canvas id="dartboard" width="700" height="700"></canvas>
   </div>
 </div>
 
-<!-- Main table -->
 <div class="sheet-container">
   <table id="sheet-table"><thead></thead><tbody></tbody></table>
 </div>
@@ -77,12 +76,13 @@ thead { background:#f2f2f2; font-weight:bold; position:sticky; top:0; z-index:2;
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (async function(){
-  // --- Main sheet table ---
   const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
   const res = await fetch(url);
   const text = await res.text();
   const rows = text.trim().split("\n").map(r=>r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
+
+  // Populate table
   rows.forEach((row)=>{
     const tr = document.createElement("tr");
     row.forEach((cell,colIndex)=>{
@@ -94,7 +94,7 @@ thead { background:#f2f2f2; font-weight:bold; position:sticky; top:0; z-index:2;
     tbody.appendChild(tr);
   });
 
-  // --- Conditional formatting ---
+  // Conditional formatting
   for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
   const numbers = rows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
   const minVal=Math.min(...numbers);
@@ -116,55 +116,153 @@ thead { background:#f2f2f2; font-weight:bold; position:sticky; top:0; z-index:2;
     }
   }
 
-  // --- Dartboard modal ---
-  const dartModal=document.getElementById("dartModal");
+  // Dartboard modal
+  const modal=document.getElementById("dartModal");
   const openBtn=document.getElementById("openModalBtn");
-  const closeBtn=document.getElementById("closeDart");
+  const closeBtn=document.querySelector(".close-btn");
   const statsDiv = document.getElementById("dartStats");
   let chartInitialized=false;
+
   openBtn.onclick=()=>{
-    dartModal.style.display="block";
+    modal.style.display="block";
     if(!chartInitialized){ initDartboard(); chartInitialized=true; }
   };
-  closeBtn.onclick=()=>{ dartModal.style.display="none"; };
+  closeBtn.onclick=()=>{ modal.style.display="none"; };
+  window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
 
   function initDartboard(){
-    statsDiv.innerHTML = "Dartboard chart will appear here.";
-  }
+    const points=[];
+    const weekAvgs = [];
+    const NUM_WEEKS = 18;
+    const sliceAngle = (2*Math.PI)/NUM_WEEKS;
+    const jitterFactor = 0.7;
+    let allValues = [];
 
-  // --- Standings modal ---
-  const standingsModal = document.getElementById("standingsModal");
-  document.getElementById("openStandingsBtn").onclick = async () => {
-    standingsModal.style.display = "block";
-    await loadStandings();
-  };
-  document.getElementById("closeStandings").onclick = () => standingsModal.style.display = "none";
+    for(let w=0; w<NUM_WEEKS; w++){
+      // row 6 -> week 1, row 10 -> week 2, row 14 -> week3 ...
+      const dataRowIndex = 5 + w*4; 
+      if(dataRowIndex >= rows.length) continue;
+      const dataRow = rows[dataRowIndex];
+      const values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+      if(values.length===0) continue;
+      allValues = allValues.concat(values);
 
-  async function loadStandings(){
-    const url2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?gid=812722975&single=true&output=csv";
-    const res = await fetch(url2);
-    const text = await res.text();
-    const rows = text.trim().split("\n").map(r=>r.split(","));
-    const table = document.getElementById("standings-table");
-    const thead = table.querySelector("thead"); thead.innerHTML="";
-    const tbody = table.querySelector("tbody"); tbody.innerHTML="";
+      // store weekly average
+      const avgWeek = Math.round(values.reduce((a,b)=>a+b,0)/values.length);
+      weekAvgs.push(avgWeek);
 
-    const headRow = document.createElement("tr");
-    rows[0].forEach(cell => { const th=document.createElement("th"); th.textContent=cell; headRow.appendChild(th); });
-    thead.appendChild(headRow);
+      const sliceStart = -Math.PI/2 + w*sliceAngle;
+      const sliceCenter = sliceStart + sliceAngle/2;
 
-    rows.slice(1).forEach(row => {
-      const tr = document.createElement("tr");
-      row.forEach(cell => { const td=document.createElement("td"); td.textContent=cell; tr.appendChild(td); });
-      tbody.appendChild(tr);
+      values.forEach(v=>{
+        const r = Math.abs(v);
+        const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
+        const angle = sliceCenter + jitter;
+        points.push({x: r*Math.cos(angle), y: -r*Math.sin(angle), value:v, week: w+1});
+      });
+    }
+
+    const minVal = allValues.length ? Math.min(...allValues) : 0;
+    const maxVal = allValues.length ? Math.max(...allValues) : 1;
+    const maxRange = Math.ceil(maxVal/5)*5 || 5;
+
+    function pointColor(value){ 
+      const ratio=(value-minVal)/(maxVal-minVal);
+      const r=Math.floor(255*ratio);
+      const g=Math.floor(255*(1-ratio));
+      return `rgb(${r},${g},0)`;
+    }
+
+    const datasets=[{
+      label:"Scores",
+      data: points,
+      pointBackgroundColor: points.map(p=>pointColor(p.value)),
+      pointBorderColor: 'transparent',
+      pointRadius:4,
+      showLine:false
+    }];
+
+    const dartboardBackground = {
+      id:"dartboardBackground",
+      beforeDraw(chart){
+        if(!chart.chartArea) return;
+        const ctx = chart.ctx;
+        const ca = chart.chartArea;
+        const cx = (ca.left+ca.right)/2;
+        const cy = (ca.top+ca.bottom)/2;
+        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
+
+        // slices
+        for(let i=0;i<NUM_WEEKS;i++){
+          const start=-Math.PI/2 + i*sliceAngle;
+          const end=start+sliceAngle;
+          ctx.beginPath(); ctx.moveTo(cx,cy);
+          ctx.fillStyle = (i%2===0)?"#f2f2f2":"#e8e8e8";
+          ctx.arc(cx,cy,radiusPx,start,end);
+          ctx.closePath(); ctx.fill();
+        }
+
+        // rings
+        ctx.strokeStyle="rgba(0,0,0,0.1)";
+        for(let val=5; val<=maxRange; val+=5){
+          const rPx = (val/maxRange)*radiusPx;
+          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
+          ctx.stroke();
+        }
+
+        // week labels with averages (italic)
+        ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
+        ctx.textAlign="center"; ctx.textBaseline="middle";
+        for(let i=0;i<NUM_WEEKS;i++){
+          const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
+          const tx = cx + Math.cos(mid)*(radiusPx+25);
+          const ty = cy + Math.sin(mid)*(radiusPx+25);
+          ctx.fillText("Week "+(i+1),tx,ty);
+          if(weekAvgs[i]){
+            ctx.font = "italic 12px Roboto";
+            ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15);
+            ctx.font = "bold 12px Roboto";
+          }
+        }
+
+        // bullseye
+        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI);
+        ctx.fillStyle="#222"; ctx.fill();
+      }
+    };
+
+    const ctx=document.getElementById("dartboard").getContext("2d");
+    window._dartChart = new Chart(ctx,{
+      type:"scatter",
+      data:{datasets},
+      options:{
+        responsive:true,
+        aspectRatio:1,
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              label:function(context){
+                const p=points[context.dataIndex];
+                return `Week ${p.week}: ${p.value}`;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{display:false,min:-maxRange,max:maxRange},
+          y:{display:false,min:-maxRange,max:maxRange}
+        }
+      },
+      plugins:[dartboardBackground]
     });
-  }
 
-  // Close modals on click outside
-  window.onclick = (e) => {
-    if(e.target===dartModal) dartModal.style.display="none";
-    if(e.target===standingsModal) standingsModal.style.display="none";
-  };
+    // Min / Avg / Max at top, integers
+    const totalAvg = Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
+    const totalMin = Math.round(Math.min(...allValues));
+    const totalMax = Math.round(Math.max(...allValues));
+    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
+  }
 })();
 </script>
 </body>
