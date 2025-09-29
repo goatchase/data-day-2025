@@ -243,30 +243,44 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   const closeStandingsBtn = document.getElementById("closeStandings");
   const standingsTbody = document.querySelector("#standings-table tbody");
 
-  openStandingsBtn.onclick = async ()=>{
-    standingsModal.style.display="block";
-    if(standingsTbody.childElementCount===0){
+  openStandingsBtn.onclick = async () => {
+    standingsModal.style.display = "block";
+    if(standingsTbody.childElementCount === 0){
       const standingsUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCeaoQ2B9SJ5Li0hL1__quVUR6ph0J4mI2qDf4SOni39_QRbHViGPSrPehEby-dEx5NBZSUr1_wJ_v/pub?gid=0&single=true&output=csv";
       const res = await fetch(standingsUrl);
       const text = await res.text();
-      const rows = text.trim().split("\n").map(r=>r.split(","));
-      rows.forEach(row=>{
+      const rows = text.trim().split("\n").map(r => r.split(","));
+      rows.forEach((row, rowIndex) => {
         const tr = document.createElement("tr");
-        row.forEach(cell=>{
+        row.forEach((cell, colIndex) => {
           const td = document.createElement("td");
           td.textContent = cell;
+          // Alignment
+          if (colIndex === 0 || colIndex === 4) td.style.textAlign = "left";
+          else td.style.textAlign = "right";
           tr.appendChild(td);
         });
+        // Column checks for highlighting
+        if (row.length > 2) {
+          if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
+          else tr.cells[1].style.backgroundColor = "#f28c8c";
+        }
+        if (row.length > 6) {
+          if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
+          else tr.cells[5].style.backgroundColor = "#f28c8c";
+        }
+        // Borders: under first row and every 5 rows
+        if (rowIndex === 0 || (rowIndex + 1) % 5 === 0) tr.style.borderBottom = "1px solid #333";
         standingsTbody.appendChild(tr);
       });
     }
   };
-  closeStandingsBtn.onclick = ()=>{ standingsModal.style.display="none"; };
-  window.onclick = (e)=>{ 
+
+  closeStandingsBtn.onclick = () => { standingsModal.style.display = "none"; };
+  window.onclick = (e) => { 
     if(e.target===standingsModal) standingsModal.style.display="none";
     if(e.target===dartModal) dartModal.style.display="none";
   };
-
 })();
 </script>
 </body>
