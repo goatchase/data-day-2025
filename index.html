@@ -21,26 +21,26 @@ button {
 }
 button:hover {
   background: linear-gradient(to bottom, #0051a8, #007aff);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
   transform: translateY(-1px);
 }
 
 /* Modal */
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
-.modal-content { background:#fff; margin:2% auto; padding:10px; border-radius:8px; width:85%; max-width:650px; position:relative; }
+.modal-content { background:#fff; margin:2% auto; padding:10px; border-radius:8px; width:90%; max-width:800px; position:relative; }
 .close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
 
+/* Dartboard */
 #dartStats { margin-bottom:10px; font-size:1rem; color:#333; font-weight:bold; text-align:center; }
-
 #dartHeader { text-align:center; margin-bottom:5px; }
 #dartHeader h2 { margin:0; font-weight:bold; }
 #dartHeader p { margin:0; font-style:italic; font-size:0.9rem; color:#555; }
-
 #dartboard { width:100%; height:auto; display:block; margin:0 auto; }
 
+/* Table */
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
 table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
-td, th { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
+td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
 tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
 tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
 tbody tr:nth-child(2) { top:20px; }
@@ -49,13 +49,10 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </head>
 <body>
 <h1>"Data" Day Scores</h1>
-
-<!-- Existing dartboard button -->
 <button id="openModalBtn">Cheaccuracy</button>
-<!-- New Standings button -->
-<button id="openStandingsBtn">View Standings</button>
+<button id="openStandingsBtn">Standings</button>
 
-<!-- Dartboard Modal -->
+<!-- Cheaccuracy Modal -->
 <div id="dartModal" class="modal">
   <div class="modal-content">
     <span class="close-btn">&times;</span>
@@ -79,7 +76,6 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
   </div>
 </div>
 
-<!-- Main Sheet Table -->
 <div class="sheet-container">
   <table id="sheet-table"><thead></thead><tbody></tbody></table>
 </div>
@@ -87,29 +83,28 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (async function(){
+  // --- Main baseline CSV for table ---
   const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
   const res = await fetch(url);
   const text = await res.text();
   const rows = text.trim().split("\n").map(r=>r.split(","));
   const tbody = document.querySelector("#sheet-table tbody");
 
-  // Populate main table
   rows.forEach((row)=>{
-    const tr = document.createElement("tr");
+    const tr=document.createElement("tr");
     row.forEach((cell,colIndex)=>{
-      const td = document.createElement("td");
-      td.textContent = cell;
+      const td=document.createElement("td");
+      td.textContent=cell;
       if(colIndex===1) td.style.fontWeight="normal";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 
-  // Conditional formatting
+  // Conditional formatting (baseline)
   for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
   const numbers = rows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
-  const minVal=Math.min(...numbers);
-  const maxVal=Math.max(...numbers);
+  const minVal=Math.min(...numbers), maxVal=Math.max(...numbers);
   function getColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
   for(let r=5;r<tbody.rows.length;r+=4){
     Array.from(tbody.rows[r].cells).forEach(td=>{
@@ -117,117 +112,104 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
     });
   }
-  for(let i=4;i<tbody.rows.length;i+=4){
-    const cur=tbody.rows[i], prev=tbody.rows[i-1];
-    if(!cur||!prev) continue;
-    for(let c=2;c<Math.min(cur.cells.length,18);c++){
-      const t1=cur.cells[c].textContent.trim().split(" ")[0];
-      const t2=prev.cells[c].textContent.trim().split(" ")[0];
-      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
-    }
-  }
 
-  // Dartboard modal
-  const modal=document.getElementById("dartModal");
+  // --- Cheaccuracy Modal ---
+  const dartModal=document.getElementById("dartModal");
   const openBtn=document.getElementById("openModalBtn");
-  const closeBtn=document.querySelector("#dartModal .close-btn");
+  const closeBtn=dartModal.querySelector(".close-btn");
   const statsDiv = document.getElementById("dartStats");
   let chartInitialized=false;
 
   openBtn.onclick=()=>{
-    modal.style.display="block";
+    dartModal.style.display="block";
     if(!chartInitialized){ initDartboard(); chartInitialized=true; }
   };
-  closeBtn.onclick=()=>{ modal.style.display="none"; };
-  window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
+  closeBtn.onclick=()=>{ dartModal.style.display="none"; };
+  window.onclick=(e)=>{ if(e.target===dartModal) dartModal.style.display="none"; };
 
   function initDartboard(){
     const points=[], weekAvgs=[], NUM_WEEKS=18, sliceAngle=(2*Math.PI)/NUM_WEEKS, jitterFactor=0.7;
     let allValues=[];
     for(let w=0; w<NUM_WEEKS; w++){
-      const dataRowIndex=5+w*4;
-      if(dataRowIndex>=rows.length) continue;
-      const dataRow = rows[dataRowIndex];
-      const values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
-      if(values.length===0) continue;
-      allValues = allValues.concat(values);
-      const avgWeek = Math.round(values.reduce((a,b)=>a+b,0)/values.length);
-      weekAvgs.push(avgWeek);
-      const sliceCenter = -Math.PI/2 + w*sliceAngle + sliceAngle/2;
+      const dataRowIndex=5+w*4; if(dataRowIndex>=rows.length) continue;
+      const dataRow=rows[dataRowIndex];
+      const values=dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+      if(values.length===0) continue; allValues=allValues.concat(values);
+      const avgWeek=Math.round(values.reduce((a,b)=>a+b,0)/values.length); weekAvgs.push(avgWeek);
+      const sliceStart=-Math.PI/2+w*sliceAngle; const sliceCenter=sliceStart+sliceAngle/2;
       values.forEach(v=>{
-        const r=Math.abs(v);
-        const jitter=(Math.random()-0.5)*sliceAngle*jitterFactor;
-        const angle=sliceCenter+jitter;
+        const r=Math.abs(v), jitter=(Math.random()-0.5)*sliceAngle*jitterFactor, angle=sliceCenter+jitter;
         points.push({x:r*Math.cos(angle),y:-r*Math.sin(angle),value:v,week:w+1});
       });
     }
-    const minVal = allValues.length ? Math.min(...allValues) : 0;
-    const maxVal = allValues.length ? Math.max(...allValues) : 1;
-    const maxRange = Math.ceil(maxVal/5)*5 || 5;
-    function pointColor(value){ const ratio=(value-minVal)/(maxVal-minVal); return `rgb(${Math.floor(255*ratio)},${Math.floor(255*(1-ratio))},0)`; }
 
-    const datasets=[{label:"Scores",data:points,pointBackgroundColor:points.map(p=>pointColor(p.value)),pointBorderColor:'transparent',pointRadius:4,showLine:false}];
+    const minVal=allValues.length?Math.min(...allValues):0;
+    const maxVal=allValues.length?Math.max(...allValues):1;
+    const maxRange=Math.ceil(maxVal/5)*5||5;
+    function pointColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
 
-    const dartboardBackground = { id:"dartboardBackground", beforeDraw(chart){
-      if(!chart.chartArea) return;
-      const ctx=chart.ctx; const ca=chart.chartArea;
-      const cx=(ca.left+ca.right)/2; const cy=(ca.top+ca.bottom)/2;
-      const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
-      for(let i=0;i<NUM_WEEKS;i++){
-        const start=-Math.PI/2 + i*sliceAngle;
-        const end=start+sliceAngle;
-        ctx.beginPath(); ctx.moveTo(cx,cy);
-        ctx.fillStyle = (i%2===0)?"#f2f2f2":"#e8e8e8";
-        ctx.arc(cx,cy,radiusPx,start,end);
-        ctx.closePath(); ctx.fill();
+    const datasets=[{label:"Scores", data:points, pointBackgroundColor:points.map(p=>pointColor(p.value)), pointBorderColor:'transparent', pointRadius:4, showLine:false}];
+
+    const dartboardBackground={
+      id:"dartboardBackground",
+      beforeDraw(chart){
+        if(!chart.chartArea) return;
+        const ctx=chart.ctx, ca=chart.chartArea;
+        const cx=(ca.left+ca.right)/2, cy=(ca.top+ca.bottom)/2;
+        const radiusPx=Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
+        for(let i=0;i<NUM_WEEKS;i++){
+          const start=-Math.PI/2+i*sliceAngle, end=start+sliceAngle;
+          ctx.beginPath(); ctx.moveTo(cx,cy);
+          ctx.fillStyle=(i%2===0)?"#f2f2f2":"#e8e8e8";
+          ctx.arc(cx,cy,radiusPx,start,end); ctx.closePath(); ctx.fill();
+        }
+        ctx.strokeStyle="rgba(0,0,0,0.1)";
+        for(let val=5;val<=maxRange;val+=5){
+          const rPx=(val/maxRange)*radiusPx;
+          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI); ctx.stroke();
+        }
+        ctx.fillStyle="#000"; ctx.font="bold 12px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
+        for(let i=0;i<NUM_WEEKS;i++){
+          const mid=-Math.PI/2+i*sliceAngle+sliceAngle/2;
+          const tx=cx+Math.cos(mid)*(radiusPx+25), ty=cy+Math.sin(mid)*(radiusPx+25);
+          ctx.fillText("Week "+(i+1),tx,ty);
+          if(weekAvgs[i]){ ctx.font="italic 12px Roboto"; ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15); ctx.font="bold 12px Roboto"; }
+        }
+        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
       }
-      ctx.strokeStyle="rgba(0,0,0,0.1)";
-      for(let val=5; val<=maxRange; val+=5){ const rPx=(val/maxRange)*radiusPx; ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI); ctx.stroke(); }
-      ctx.fillStyle="#000"; ctx.font="bold 12px Roboto"; ctx.textAlign="center"; ctx.textBaseline="middle";
-      for(let i=0;i<NUM_WEEKS;i++){
-        const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
-        const tx=cx+Math.cos(mid)*(radiusPx+25); const ty=cy+Math.sin(mid)*(radiusPx+25);
-        ctx.fillText("Week "+(i+1),tx,ty);
-        if(weekAvgs[i]){ ctx.font="italic 12px Roboto"; ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15); ctx.font="bold 12px Roboto"; }
-      }
-      ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
-    }};
+    };
 
     const ctx=document.getElementById("dartboard").getContext("2d");
-    window._dartChart = new Chart(ctx,{ type:"scatter", data:{datasets}, options:{
-      responsive:true, aspectRatio:1, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:function(context){ const p=points[context.dataIndex]; return `Week ${p.week}: ${p.value}`; } } } }, scales:{x:{display:false,min:-maxRange,max:maxRange},y:{display:false,min:-maxRange,max:maxRange} } }, plugins:[dartboardBackground]});
+    new Chart(ctx,{type:"scatter", data:{datasets}, options:{responsive:true, aspectRatio:1, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(context){const p=points[context.dataIndex]; return `Week ${p.week}: ${p.value}`;}}}}, scales:{x:{display:false,min:-maxRange,max:maxRange}, y:{display:false,min:-maxRange,max:maxRange}}}, plugins:[dartboardBackground]});
 
-    const totalAvg = Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
-    const totalMin = Math.round(Math.min(...allValues));
-    const totalMax = Math.round(Math.max(...allValues));
-    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
+    const totalAvg=Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
+    const totalMin=Math.round(Math.min(...allValues));
+    const totalMax=Math.round(Math.max(...allValues));
+    statsDiv.innerHTML=`<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
   }
 
-  // Standings modal
-  const standingsModal = document.getElementById("standingsModal");
-  const openStandingsBtn = document.getElementById("openStandingsBtn");
-  const closeStandingsBtn = document.getElementById("closeStandings");
+  // --- Standings Modal ---
+  const standingsModal=document.getElementById("standingsModal");
+  const openStandingsBtn=document.getElementById("openStandingsBtn");
+  const closeStandingsBtn=document.getElementById("closeStandings");
 
-  openStandingsBtn.onclick = async () => {
-    standingsModal.style.display = "block";
-    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?gid=812722975&single=true&output=csv";
-    const res = await fetch(url);
-    const text = await res.text();
-    const rows = text.trim().split("\n").map(r=>r.split(","));
-
-    const table = document.getElementById("standings-table");
-    const thead = table.querySelector("thead"); thead.innerHTML="";
-    const tbody = table.querySelector("tbody"); tbody.innerHTML="";
-
-    const headRow = document.createElement("tr");
-    rows[0].forEach(cell=>{ const th=document.createElement("th"); th.textContent=cell; headRow.appendChild(th); });
-    thead.appendChild(headRow);
-
-    rows.slice(1).forEach(row=>{ const tr=document.createElement("tr"); row.forEach(cell=>{ const td=document.createElement("td"); td.textContent=cell; tr.appendChild(td); }); tbody.appendChild(tr); });
+  openStandingsBtn.onclick=async()=>{
+    standingsModal.style.display="block";
+    const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?gid=812722975&single=true&output=csv";
+    const res=await fetch(url); const text=await res.text();
+    const rows=text.trim().split("\n").map(r=>r.split(","));
+    const tbody=document.querySelector("#standings-table tbody");
+    tbody.innerHTML="";
+    rows.forEach(row=>{
+      const tr=document.createElement("tr");
+      row.forEach(cell=>{
+        const td=document.createElement("td"); td.textContent=cell; tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
   };
-
-  closeStandingsBtn.onclick = () => { standingsModal.style.display="none"; };
-  window.onclick = (e) => { if(e.target===standingsModal) standingsModal.style.display="none"; };
+  closeStandingsBtn.onclick=()=>{ standingsModal.style.display="none"; };
+  window.onclick=(e)=>{ if(e.target===standingsModal) standingsModal.style.display="none"; };
 
 })();
 </script>
