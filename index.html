@@ -39,7 +39,7 @@ button:hover {
 
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
 table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
-td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
+td { text-align:center; word-break:keep-all; white-space:nowrap; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
 
 /* Main table hover and sticky rows */
 tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
@@ -48,7 +48,7 @@ tbody tr:nth-child(2) { top:20px; }
 tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
 /* Standings modal table */
-#standings-table td { border:none; padding:4px; }
+#standings-table td { border:none; padding:4px; white-space:nowrap; }
 #standings-table { table-layout:fixed; width:100%; }
 </style>
 </head>
@@ -263,6 +263,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           td.textContent = cell;
           if (colIndex === 0 || colIndex === 4) td.style.textAlign = "left";
           else td.style.textAlign = "right";
+          td.style.whiteSpace="nowrap";
           tr.appendChild(td);
         });
 
