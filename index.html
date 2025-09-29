@@ -39,17 +39,11 @@ button:hover {
 
 .sheet-container { width:100%; overflow-x:auto; padding:5px; }
 table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
-td { text-align:center; word-break:keep-all; white-space:nowrap; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
-
-/* Main table hover and sticky rows */
+td { text-align:center; word-break:break-word; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
 tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
 tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
 tbody tr:nth-child(2) { top:20px; }
 tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
-
-/* Standings modal table */
-#standings-table td { border:none; padding:4px; white-space:nowrap; }
-#standings-table { table-layout:fixed; width:100%; }
 </style>
 </head>
 <body>
@@ -100,33 +94,12 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     row.forEach((cell,colIndex)=>{
       const td = document.createElement("td");
       td.textContent = cell;
+      td.style.whiteSpace = "nowrap"; // prevent wrap
       if(colIndex===1) td.style.fontWeight="normal";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
-
-  // ===== Conditional formatting =====
-  for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
-  const numbers = mainRows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
-  const minVal=Math.min(...numbers);
-  const maxVal=Math.max(...numbers);
-  function getColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
-  for(let r=5;r<tbody.rows.length;r+=4){
-    Array.from(tbody.rows[r].cells).forEach(td=>{
-      const val=parseFloat(td.textContent);
-      if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
-    });
-  }
-  for(let i=4;i<tbody.rows.length;i+=4){
-    const cur=tbody.rows[i], prev=tbody.rows[i-1];
-    if(!cur||!prev) continue;
-    for(let c=2;c<Math.min(cur.cells.length,18);c++){
-      const t1=cur.cells[c].textContent.trim().split(" ")[0];
-      const t2=prev.cells[c].textContent.trim().split(" ")[0];
-      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
-    }
-  }
 
   // ===== Dartboard Modal =====
   const dartModal=document.getElementById("dartModal");
@@ -140,12 +113,13 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     if(!chartInitialized){ initDartboard(); chartInitialized=true; }
   };
   closeDartBtn.onclick=()=>{ dartModal.style.display="none"; };
-  window.onclick=(e)=>{ if(e.target===dartModal) dartModal.style.display="none"; };
+  window.onclick=(e)=>{ 
+    if(e.target===dartModal) dartModal.style.display="none"; 
+  };
 
   function initDartboard(){
     const points=[], weekAvgs=[], NUM_WEEKS=18, sliceAngle=(2*Math.PI)/NUM_WEEKS, jitterFactor=0.7;
     let allValues=[];
-
     for(let w=0; w<NUM_WEEKS; w++){
       const dataRowIndex = 5 + w*4; 
       if(dataRowIndex >= mainRows.length) continue;
@@ -156,7 +130,6 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
       const avgWeek = Math.round(values.reduce((a,b)=>a+b,0)/values.length);
       weekAvgs.push(avgWeek);
       const sliceCenter = -Math.PI/2 + w*sliceAngle + sliceAngle/2;
-
       values.forEach(v=>{
         const r = Math.abs(v);
         const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
@@ -251,7 +224,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
   openStandingsBtn.onclick = async () => {
     standingsModal.style.display = "block";
-    if(standingsTbody.childElementCount === 0){
+    if (standingsTbody.childElementCount === 0) {
       const standingsUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCeaoQ2B9SJ5Li0hL1__quVUR6ph0J4mI2qDf4SOni39_QRbHViGPSrPehEby-dEx5NBZSUr1_wJ_v/pub?gid=0&single=true&output=csv";
       const res = await fetch(standingsUrl);
       const text = await res.text();
@@ -261,25 +234,11 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         row.forEach((cell, colIndex) => {
           const td = document.createElement("td");
           td.textContent = cell;
-          if (colIndex === 0 || colIndex === 4) td.style.textAlign = "left";
-          else td.style.textAlign = "right";
-          td.style.whiteSpace="nowrap";
+          td.style.whiteSpace = "nowrap";
+          td.style.textAlign = (colIndex === 0 || colIndex === 4) ? "left" : "right";
           tr.appendChild(td);
         });
-
-        // Conditional highlighting for columns 2 vs 3 and 6 vs 7
-        if (row.length > 2) {
-          if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
-          else tr.cells[1].style.backgroundColor = "#f28c8c";
-        }
-        if (row.length > 6) {
-          if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
-          else tr.cells[5].style.backgroundColor = "#f28c8c";
-        }
-
-        // Highlight rows 1,6,11,16… (0-indexed: 0,5,10,15…)
         if (rowIndex % 5 === 0) tr.style.backgroundColor = "#f2f2f2";
-
         standingsTbody.appendChild(tr);
       });
     }
@@ -290,6 +249,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     if(e.target===standingsModal) standingsModal.style.display="none";
     if(e.target===dartModal) dartModal.style.display="none";
   };
+
 })();
 </script>
 </body>
