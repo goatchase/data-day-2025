@@ -276,18 +276,30 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
         // Skip conditional formatting on rows 1,6,11,16… (0,5,10,15 zero-indexed)
         const skipConditional = (rowIndex % 5 === 0);
 
-        if (!skipConditional) {
-          // Conditional highlighting for columns 2 vs 3
-          if (row.length > 2) {
-            if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
-            else tr.cells[1].style.backgroundColor = "#f28c8c";
-          }
-          // Conditional highlighting for columns 6 vs 7
-          if (row.length > 6) {
-            if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
-            else tr.cells[5].style.backgroundColor = "#f28c8c";
-          }
-        }
+if (!skipConditional) {
+  // Conditional highlighting for columns 2 vs 3
+  if (row.length > 2) {
+    if (row[1].trim() === row[2].trim()) {
+      tr.cells[1].style.backgroundColor = "lightgreen";
+      tr.cells[2].style.backgroundColor = "lightgreen";
+    } else {
+      tr.cells[1].style.backgroundColor = "#f28c8c";
+      tr.cells[2].style.backgroundColor = "#f28c8c";
+    }
+  }
+
+  // Conditional highlighting for columns 6 vs 7
+  if (row.length > 6) {
+    if (row[5].trim() === row[6].trim()) {
+      tr.cells[5].style.backgroundColor = "lightgreen";
+      tr.cells[6].style.backgroundColor = "lightgreen";
+    } else {
+      tr.cells[5].style.backgroundColor = "#f28c8c";
+      tr.cells[6].style.backgroundColor = "#f28c8c";
+    }
+  }
+}
+
 
         // Make rows 1,6,11,16… bold
         if (skipConditional) {
