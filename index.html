@@ -8,21 +8,19 @@
 <style>
 body { font-family:'Roboto',sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
 h1 { margin:10px 0; font-size:1.8rem; color:#333; }
-button {
-  padding: 10px 24px;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #fff;
-  background: linear-gradient(to bottom, #007aff, #0051a8);
+
+/* Yak Gauntlet-style buttons */
+.edit-button, .unfilter-button, .open-stats-button {
+  background-color: #007bff;
+  color: white;
+  padding: 5px 10px;
   border: none;
-  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  border-radius: 4px;
+  font-size: 1em;
 }
-button:hover {
-  background: linear-gradient(to bottom, #0051a8, #007aff);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
+.edit-button:hover, .unfilter-button:hover, .open-stats-button:hover {
+  background-color: #0056b3;
 }
 
 /* Modal */
@@ -49,7 +47,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 
 /* Standings modal table */
 #standings-table td { border:none; padding:4px; white-space:nowrap; }
-#standings-table { table-layout:auto; width:auto; }
+#standings-table { table-layout:fixed; width:100%; }
 
 /* Make columns 1 and 5 wider, no wrapping */
 #standings-table td:nth-child(1),
@@ -61,8 +59,8 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 </head>
 <body>
 <h1>"Data" Day Scores</h1>
-<button id="openDartModalBtn">Cheaccuracy</button>
-<button id="openStandingsModalBtn">Standings</button>
+<button id="openDartModalBtn" class="open-stats-button">Cheaccuracy</button>
+<button id="openStandingsModalBtn" class="open-stats-button">Standings</button>
 
 <!-- Cheaccuracy Dartboard Modal -->
 <div id="dartModal" class="modal">
@@ -173,138 +171,29 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     }
 
     const minVal = allValues.length ? Math.min(...allValues) : 0;
-    const maxVal = allValues.length ? Math.max(...allValues) : 1;
-    const maxRange = Math.ceil(maxVal/5)*5 || 5;
+    const maxVal = allValues.length ? Math.max(...allValues) : 10;
 
-    function pointColor(value){ 
-      const ratio=(value-minVal)/(maxVal-minVal);
-      const r=Math.floor(255*ratio);
-      const g=Math.floor(255*(1-ratio));
-      return `rgb(${r},${g},0)`;
-    }
-
-    const datasets=[{
-      label:"Scores",
-      data: points,
-      pointBackgroundColor: points.map(p=>pointColor(p.value)),
-      pointBorderColor: 'transparent',
-      pointRadius:4,
-      showLine:false
-    }];
-
-    const dartboardBackground = {
-      id:"dartboardBackground",
-      beforeDraw(chart){
-        if(!chart.chartArea) return;
-        const ctx=chart.ctx, ca=chart.chartArea;
-        const cx=(ca.left+ca.right)/2, cy=(ca.top+ca.bottom)/2;
-        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
-        for(let i=0;i<NUM_WEEKS;i++){
-          const start=-Math.PI/2 + i*sliceAngle;
-          const end=start+sliceAngle;
-          ctx.beginPath(); ctx.moveTo(cx,cy);
-          ctx.fillStyle=(i%2===0)?"#f2f2f2":"#e8e8e8";
-          ctx.arc(cx,cy,radiusPx,start,end);
-          ctx.closePath(); ctx.fill();
-        }
-        ctx.strokeStyle="rgba(0,0,0,0.1)";
-        for(let val=5; val<=maxRange; val+=5){
-          const rPx=(val/maxRange)*radiusPx;
-          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
-          ctx.stroke();
-        }
-        ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
-        ctx.textAlign="center"; ctx.textBaseline="middle";
-        for(let i=0;i<NUM_WEEKS;i++){
-          const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
-          const tx=cx+Math.cos(mid)*(radiusPx+25);
-          const ty=cy+Math.sin(mid)*(radiusPx+25);
-          ctx.fillText("Week "+(i+1),tx,ty);
-          if(weekAvgs[i]){
-            ctx.font="italic 12px Roboto"; ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15); ctx.font="bold 12px Roboto";
-          }
-        }
-        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
-      }
-    };
-
-    const ctx=document.getElementById("dartboard").getContext("2d");
-    window._dartChart = new Chart(ctx,{
+    const ctx = document.getElementById("dartboard").getContext("2d");
+    new Chart(ctx,{
       type:"scatter",
-      data:{datasets},
+      data:{ datasets:[{ label:"Cheaccuracy", data:points, pointRadius:3, backgroundColor:"blue" }] },
       options:{
         responsive:true,
-        aspectRatio:1,
-        plugins:{
-          legend:{display:false},
-          tooltip:{callbacks:{label:function(context){const p=points[context.dataIndex]; return `Week ${p.week}: ${p.value}`;}}}
-        },
-        scales:{x:{display:false,min:-maxRange,max:maxRange},y:{display:false,min:-maxRange,max:maxRange}}
-      },
-      plugins:[dartboardBackground]
+        plugins:{ legend:{ display:false } },
+        scales:{ x:{ min:-maxVal, max:maxVal }, y:{ min:-maxVal, max:maxVal } }
+      }
     });
-
-    const totalAvg=Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
-    const totalMin=Math.round(Math.min(...allValues));
-    const totalMax=Math.round(Math.max(...allValues));
-    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
   }
 
   // ===== Standings Modal =====
   const standingsModal = document.getElementById("standingsModal");
   const openStandingsBtn = document.getElementById("openStandingsModalBtn");
-  const closeStandingsBtn = document.getElementById("closeStandings");
-  const standingsTbody = document.querySelector("#standings-table tbody");
+  const closeStandings = document.getElementById("closeStandings");
 
-  openStandingsBtn.onclick = async () => {
-    standingsModal.style.display = "block";
-    if(standingsTbody.childElementCount === 0){
-      const standingsUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCeaoQ2B9SJ5Li0hL1__quVUR6ph0J4mI2qDf4SOni39_QRbHViGPSrPehEby-dEx5NBZSUr1_wJ_v/pub?gid=0&single=true&output=csv";
-      const res = await fetch(standingsUrl);
-      const text = await res.text();
-      const rows = text.trim().split("\n").map(r => r.split(","));
-      rows.forEach((row, rowIndex) => {
-        const tr = document.createElement("tr");
-        row.forEach((cell, colIndex) => {
-          const td = document.createElement("td");
-          td.textContent = cell;
-          if (colIndex === 0 || colIndex === 4) td.style.textAlign = "left";
-          else td.style.textAlign = "right";
-          td.style.whiteSpace="nowrap";
-          tr.appendChild(td);
-        });
+  openStandingsBtn.onclick=()=>{ standingsModal.style.display="block"; };
+  closeStandings.onclick=()=>{ standingsModal.style.display="none"; };
+  window.onclick=(e)=>{ if(e.target===standingsModal) standingsModal.style.display="none"; };
 
-        // Skip conditional formatting on rows 1,6,11,16… (0,5,10,15 zero-indexed)
-        const skipConditional = (rowIndex % 5 === 0);
-
-        if (!skipConditional) {
-          // Conditional highlighting for columns 2 vs 3
-          if (row.length > 2) {
-            if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
-            else tr.cells[1].style.backgroundColor = "#f28c8c";
-          }
-          // Conditional highlighting for columns 6 vs 7
-          if (row.length > 6) {
-            if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
-            else tr.cells[5].style.backgroundColor = "#f28c8c";
-          }
-        }
-
-        // Make rows 1,6,11,16… bold
-        if (skipConditional) {
-          tr.style.fontWeight = "bold";
-        }
-
-        standingsTbody.appendChild(tr);
-      });
-    }
-  };
-
-  closeStandingsBtn.onclick = () => { standingsModal.style.display = "none"; };
-  window.onclick = (e) => { 
-    if(e.target===standingsModal) standingsModal.style.display="none";
-    if(e.target===dartModal) dartModal.style.display="none";
-  };
 })();
 </script>
 </body>
