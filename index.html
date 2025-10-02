@@ -1,240 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>"Data" Day Scores</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: #f7f7f7;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    table {
-      border-collapse: collapse;
-      margin: 0 auto;
-      background: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 6px 10px;
-      text-align: right;
-      white-space: nowrap;
-    }
-    th {
-      background: #f4f4f4;
-    }
-    button {
-      display: block;
-      margin: 15px auto;
-      padding: 10px 18px;
-      font-size: 14px;
-      border-radius: 6px;
-      border: none;
-      background: #4285f4;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #3367d6;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>"Data" Day Scores</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body { font-family:'Roboto',sans-serif; background:#fff; margin:0; padding:10px; text-align:center; }
+h1 { margin:10px 0; font-size:1.8rem; color:#333; }
+button {
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(to bottom, #007aff, #0051a8);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+button:hover {
+  background: linear-gradient(to bottom, #0051a8, #007aff);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
 
-    /* Modal styling */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      overflow: auto;
-      background: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-      background: #fff;
-      margin: 5% auto;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 95%;
-      overflow-x: auto;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 24px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .close:hover { color: black; }
+/* Modal */
+.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color: rgba(0,0,0,0.6); overflow:auto; }
+.modal-content { background:#fff; margin:2% auto; padding:10px; border-radius:8px; width:85%; max-width:650px; position:relative; }
+.close-btn { position:absolute; top:10px; right:15px; font-size:1.5rem; font-weight:bold; color:#333; cursor:pointer; }
 
-    /* Standings modal table */
-    #standings-table {
-      table-layout: fixed;   /* prevent auto-shrink */
-      width: 100%;
-      border-collapse: collapse;
-    }
-    #standings-table th,
-    #standings-table td {
-      padding: 6px 10px;
-      text-align: right;
-      white-space: nowrap;   /* no wrapping */
-      overflow: hidden;      /* no spilling */
-      text-overflow: ellipsis;
-    }
-    /* Column 1 wider */
-    #standings-table td:nth-child(1),
-    #standings-table th:nth-child(1) {
-      width: 200px;
-      text-align: left;
-    }
-    /* Column 5 wider */
-    #standings-table td:nth-child(5),
-    #standings-table th:nth-child(5) {
-      width: 180px;
-      text-align: left;
-    }
-  </style>
+#dartStats { margin-bottom:10px; font-size:1rem; color:#333; font-weight:bold; text-align:center; }
+#dartHeader { text-align:center; margin-bottom:5px; }
+#dartHeader h2 { margin:0; font-weight:bold; }
+#dartHeader p { margin:0; font-style:italic; font-size:0.9rem; color:#555; }
+
+#dartboard { width:100%; height:auto; display:block; margin:0 auto; }
+
+.sheet-container { width:100%; overflow-x:auto; padding:5px; }
+table { border-collapse:collapse; width:max-content; min-width:100%; table-layout:fixed; font-size:1rem; background:#fff; }
+td { text-align:center; word-break:keep-all; white-space:nowrap; padding:1px 4px; height:20px; background:#fff; min-width:20px; }
+
+/* Main table hover and sticky rows */
+tbody tr:nth-child(n+3):hover td { background-color:#f2f2f2; }
+tbody tr:nth-child(1), tbody tr:nth-child(2) { position:sticky; top:0; background:#fff; z-index:2; }
+tbody tr:nth-child(2) { top:20px; }
+tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
+
+/* Standings modal table */
+#standings-table td { border:none; padding:4px; white-space:nowrap; }
+#standings-table { table-layout:fixed; width:100%; }
+
+/* Make columns 1 and 5 wider, no wrapping */
+#standings-table td:nth-child(1),
+#standings-table td:nth-child(5) {
+  min-width: 150px;
+  white-space: nowrap;
+}
+</style>
 </head>
 <body>
-  <h1>"Data" Day Scores</h1>
+<h1>"Data" Day Scores</h1>
+<button id="openDartModalBtn">Cheaccuracy</button>
+<button id="openStandingsModalBtn">Standings</button>
 
-  <button id="openCheaccuracy">Open Cheaccuracy Modal</button>
-  <button id="openStandings">Open Standings Modal</button>
+<!-- Cheaccuracy Dartboard Modal -->
+<div id="dartModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn">&times;</span>
+    <div id="dartHeader">
+      <h2>Cheaccuracy</h2>
+      <p>Accuracy of each game - Cheah's data vs. result</p>
+    </div>
+    <div id="dartStats"></div>
+    <canvas id="dartboard" width="700" height="700"></canvas>
+  </div>
+</div>
 
-  <!-- Cheaccuracy Modal -->
-  <div id="cheaccuracyModal" class="modal">
-    <div class="modal-content">
-      <span class="close" data-close="cheaccuracyModal">&times;</span>
-      <h2>Cheaccuracy Graph</h2>
-      <canvas id="cheaccuracyChart" width="800" height="400"></canvas>
+<!-- Standings Modal -->
+<div id="standingsModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn" id="closeStandings">&times;</span>
+    <h2>Standings</h2>
+    <div class="sheet-container">
+      <table id="standings-table"><thead></thead><tbody></tbody></table>
     </div>
   </div>
+</div>
 
-  <!-- Standings Modal -->
-  <div id="standingsModal" class="modal">
-    <div class="modal-content">
-      <span class="close" data-close="standingsModal">&times;</span>
-      <h2>Standings</h2>
-      <table id="standings-table">
-        <thead><tr></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
+<div class="sheet-container">
+  <table id="sheet-table"><thead></thead><tbody></tbody></table>
+</div>
 
-  <script>
-    // Cheaccuracy button
-    document.getElementById("openCheaccuracy").onclick = function() {
-      document.getElementById("cheaccuracyModal").style.display = "block";
-      drawCheaccuracyChart();
-    };
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(async function(){
+  // ===== Main Sheet Table =====
+  const mainUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzZ98moW_HArkbdGmyy83BjEVJn3pvpnOtOM66bs77BERNHalhZGkM8KodckPh8QybWJBnz3OwqZaa/pub?output=csv";
+  const mainRes = await fetch(mainUrl);
+  const mainText = await mainRes.text();
+  const mainRows = mainText.trim().split("\n").map(r=>r.split(","));
+  const tbody = document.querySelector("#sheet-table tbody");
 
-    // Standings button
-    document.getElementById("openStandings").onclick = function() {
-      document.getElementById("standingsModal").style.display = "block";
-      loadStandings();
-    };
-
-    // Close buttons
-    document.querySelectorAll(".close").forEach(el => {
-      el.onclick = function() {
-        document.getElementById(el.dataset.close).style.display = "none";
-      };
+  mainRows.forEach(row=>{
+    const tr = document.createElement("tr");
+    row.forEach((cell,colIndex)=>{
+      const td = document.createElement("td");
+      td.textContent = cell;
+      if(colIndex===1) td.style.fontWeight="normal";
+      tr.appendChild(td);
     });
+    tbody.appendChild(tr);
+  });
 
-    // Close modals on outside click
-    window.onclick = function(event) {
-      if (event.target.classList.contains("modal")) {
-        event.target.style.display = "none";
+  // ===== Conditional formatting for main sheet =====
+  for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
+  const numbers = mainRows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
+  const minVal=Math.min(...numbers);
+  const maxVal=Math.max(...numbers);
+  function getColor(value){ const ratio=(value-minVal)/(maxVal-minVal); const r=Math.floor(255*ratio); const g=Math.floor(255*(1-ratio)); return `rgb(${r},${g},0)`; }
+  for(let r=5;r<tbody.rows.length;r+=4){
+    Array.from(tbody.rows[r].cells).forEach(td=>{
+      const val=parseFloat(td.textContent);
+      if(!isNaN(val)){ td.style.backgroundColor=getColor(val); td.style.color="#fff"; }
+    });
+  }
+  for(let i=4;i<tbody.rows.length;i+=4){
+    const cur=tbody.rows[i], prev=tbody.rows[i-1];
+    if(!cur||!prev) continue;
+    for(let c=2;c<Math.min(cur.cells.length,18);c++){
+      const t1=cur.cells[c].textContent.trim().split(" ")[0];
+      const t2=prev.cells[c].textContent.trim().split(" ")[0];
+      if(t1&&t1===t2){ cur.cells[c].style.backgroundColor="lightgreen"; prev.cells[c].style.backgroundColor="lightgreen"; }
+    }
+  }
+
+  // ===== Dartboard Modal =====
+  const dartModal=document.getElementById("dartModal");
+  const openDartBtn=document.getElementById("openDartModalBtn");
+  const closeDartBtn=dartModal.querySelector(".close-btn");
+  const statsDiv = document.getElementById("dartStats");
+  let chartInitialized=false;
+
+  openDartBtn.onclick=()=>{
+    dartModal.style.display="block";
+    if(!chartInitialized){ initDartboard(); chartInitialized=true; }
+  };
+  closeDartBtn.onclick=()=>{ dartModal.style.display="none"; };
+  window.onclick=(e)=>{ if(e.target===dartModal) dartModal.style.display="none"; };
+
+  function initDartboard(){
+    const points=[], weekAvgs=[], NUM_WEEKS=18, sliceAngle=(2*Math.PI)/NUM_WEEKS, jitterFactor=0.7;
+    let allValues=[];
+
+    for(let w=0; w<NUM_WEEKS; w++){
+      const dataRowIndex = 5 + w*4; 
+      if(dataRowIndex >= mainRows.length) continue;
+      const dataRow = mainRows[dataRowIndex];
+      const values = dataRow.slice(2,18).map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+      if(values.length===0) continue;
+      allValues = allValues.concat(values);
+      const avgWeek = Math.round(values.reduce((a,b)=>a+b,0)/values.length);
+      weekAvgs.push(avgWeek);
+      const sliceCenter = -Math.PI/2 + w*sliceAngle + sliceAngle/2;
+
+      values.forEach(v=>{
+        const r = Math.abs(v);
+        const jitter = (Math.random()-0.5)*sliceAngle*jitterFactor;
+        const angle = sliceCenter + jitter;
+        points.push({x: r*Math.cos(angle), y: -r*Math.sin(angle), value:v, week:w+1});
+      });
+    }
+
+    const minVal = allValues.length ? Math.min(...allValues) : 0;
+    const maxVal = allValues.length ? Math.max(...allValues) : 1;
+    const maxRange = Math.ceil(maxVal/5)*5 || 5;
+
+    function pointColor(value){ 
+      const ratio=(value-minVal)/(maxVal-minVal);
+      const r=Math.floor(255*ratio);
+      const g=Math.floor(255*(1-ratio));
+      return `rgb(${r},${g},0)`;
+    }
+
+    const datasets=[{
+      label:"Scores",
+      data: points,
+      pointBackgroundColor: points.map(p=>pointColor(p.value)),
+      pointBorderColor: 'transparent',
+      pointRadius:4,
+      showLine:false
+    }];
+
+    const dartboardBackground = {
+      id:"dartboardBackground",
+      beforeDraw(chart){
+        if(!chart.chartArea) return;
+        const ctx=chart.ctx, ca=chart.chartArea;
+        const cx=(ca.left+ca.right)/2, cy=(ca.top+ca.bottom)/2;
+        const radiusPx = Math.min(ca.right-ca.left, ca.bottom-ca.top)/2*0.85;
+        for(let i=0;i<NUM_WEEKS;i++){
+          const start=-Math.PI/2 + i*sliceAngle;
+          const end=start+sliceAngle;
+          ctx.beginPath(); ctx.moveTo(cx,cy);
+          ctx.fillStyle=(i%2===0)?"#f2f2f2":"#e8e8e8";
+          ctx.arc(cx,cy,radiusPx,start,end);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.strokeStyle="rgba(0,0,0,0.1)";
+        for(let val=5; val<=maxRange; val+=5){
+          const rPx=(val/maxRange)*radiusPx;
+          ctx.beginPath(); ctx.arc(cx,cy,rPx,0,2*Math.PI);
+          ctx.stroke();
+        }
+        ctx.fillStyle="#000"; ctx.font="bold 12px Roboto";
+        ctx.textAlign="center"; ctx.textBaseline="middle";
+        for(let i=0;i<NUM_WEEKS;i++){
+          const mid=-Math.PI/2 + i*sliceAngle + sliceAngle/2;
+          const tx=cx+Math.cos(mid)*(radiusPx+25);
+          const ty=cy+Math.sin(mid)*(radiusPx+25);
+          ctx.fillText("Week "+(i+1),tx,ty);
+          if(weekAvgs[i]){
+            ctx.font="italic 12px Roboto"; ctx.fillText("Avg: "+weekAvgs[i],tx,ty+15); ctx.font="bold 12px Roboto";
+          }
+        }
+        ctx.beginPath(); ctx.arc(cx,cy,Math.max(3,radiusPx*0.03),0,2*Math.PI); ctx.fillStyle="#222"; ctx.fill();
       }
     };
 
-    // Dummy chart for cheaccuracy
-    function drawCheaccuracyChart() {
-      const ctx = document.getElementById("cheaccuracyChart").getContext("2d");
-      new Chart(ctx, {
-        type: "scatter",
-        data: {
-          datasets: [{
-            label: "Example Data",
-            data: Array.from({length: 20}, () => ({x: Math.random()*10, y: Math.random()*10})),
-            backgroundColor: "blue"
-          }]
+    const ctx=document.getElementById("dartboard").getContext("2d");
+    window._dartChart = new Chart(ctx,{
+      type:"scatter",
+      data:{datasets},
+      options:{
+        responsive:true,
+        aspectRatio:1,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:function(context){const p=points[context.dataIndex]; return `Week ${p.week}: ${p.value}`;}}}
         },
-        options: {
-          scales: {
-            x: { title: { display: true, text: "X Axis" } },
-            y: { title: { display: true, text: "Y Axis" } }
-          }
-        }
-      });
-    }
+        scales:{x:{display:false,min:-maxRange,max:maxRange},y:{display:false,min:-maxRange,max:maxRange}}
+      },
+      plugins:[dartboardBackground]
+    });
 
-    // Dummy standings data
-    const standingsData = [
-      ["Division", "W", "L", "T", "Team", "GF", "GA", "Pts"],
-      ["East", "", "", "", "", "", "", ""],
-      ["Team A", "10", "2", "0", "Sharks", "30", "15", "20"],
-      ["Team B", "8", "4", "0", "Penguins", "28", "20", "16"],
-      ["Team C", "6", "6", "0", "Bruins", "25", "25", "12"],
-      ["Team D", "4", "8", "0", "Flyers", "18", "30", "8"],
-      ["West", "", "", "", "", "", "", ""],
-      ["Team E", "12", "0", "0", "Avalanche", "40", "10", "24"],
-      ["Team F", "7", "5", "0", "Oilers", "26", "22", "14"],
-      ["Team G", "5", "7", "0", "Kings", "20", "28", "10"],
-      ["Team H", "3", "9", "0", "Canucks", "15", "35", "6"],
-    ];
+    const totalAvg=Math.round(allValues.reduce((a,b)=>a+b,0)/allValues.length);
+    const totalMin=Math.round(Math.min(...allValues));
+    const totalMax=Math.round(Math.max(...allValues));
+    statsDiv.innerHTML = `<strong>Min: ${totalMin} &nbsp;&nbsp; Avg: ${totalAvg} &nbsp;&nbsp; Max: ${totalMax}</strong>`;
+  }
 
-    function loadStandings() {
-      const table = document.getElementById("standings-table");
-      const theadRow = table.querySelector("thead tr");
-      const tbody = table.querySelector("tbody");
-      theadRow.innerHTML = "";
-      tbody.innerHTML = "";
+  // ===== Standings Modal =====
+  const standingsModal = document.getElementById("standingsModal");
+  const openStandingsBtn = document.getElementById("openStandingsModalBtn");
+  const closeStandingsBtn = document.getElementById("closeStandings");
+  const standingsTbody = document.querySelector("#standings-table tbody");
 
-      // Headers
-      standingsData[0].forEach(head => {
-        const th = document.createElement("th");
-        th.textContent = head;
-        theadRow.appendChild(th);
-      });
-
-      // Rows
-      standingsData.slice(1).forEach((row, rowIndex) => {
+  openStandingsBtn.onclick = async () => {
+    standingsModal.style.display = "block";
+    if(standingsTbody.childElementCount === 0){
+      const standingsUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCeaoQ2B9SJ5Li0hL1__quVUR6ph0J4mI2qDf4SOni39_QRbHViGPSrPehEby-dEx5NBZSUr1_wJ_v/pub?gid=0&single=true&output=csv";
+      const res = await fetch(standingsUrl);
+      const text = await res.text();
+      const rows = text.trim().split("\n").map(r => r.split(","));
+      rows.forEach((row, rowIndex) => {
         const tr = document.createElement("tr");
         row.forEach((cell, colIndex) => {
           const td = document.createElement("td");
           td.textContent = cell;
+          if (colIndex === 0 || colIndex === 4) td.style.textAlign = "left";
+          else td.style.textAlign = "right";
+          td.style.whiteSpace="nowrap";
           tr.appendChild(td);
         });
 
+        // Skip conditional formatting on rows 1,6,11,16… (0,5,10,15 zero-indexed)
         const skipConditional = (rowIndex % 5 === 0);
 
         if (!skipConditional) {
+          // Conditional highlighting for columns 2 vs 3
           if (row.length > 2) {
             if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
             else tr.cells[1].style.backgroundColor = "#f28c8c";
           }
+          // Conditional highlighting for columns 6 vs 7
           if (row.length > 6) {
             if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
             else tr.cells[5].style.backgroundColor = "#f28c8c";
           }
         }
 
+        // Make rows 1,6,11,16… bold
         if (skipConditional) {
           tr.style.fontWeight = "bold";
         }
 
-        tbody.appendChild(tr);
+        standingsTbody.appendChild(tr);
       });
     }
-  </script>
+  };
+
+  closeStandingsBtn.onclick = () => { standingsModal.style.display = "none"; };
+  window.onclick = (e) => { 
+    if(e.target===standingsModal) standingsModal.style.display="none";
+    if(e.target===dartModal) dartModal.style.display="none";
+  };
+})();
+</script>
 </body>
 </html>
