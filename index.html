@@ -50,6 +50,13 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
 /* Standings modal table */
 #standings-table td { border:none; padding:4px; white-space:nowrap; }
 #standings-table { table-layout:fixed; width:100%; }
+
+/* Make columns 1 and 5 wider, no wrapping */
+#standings-table td:nth-child(1),
+#standings-table td:nth-child(5) {
+  min-width: 150px;
+  white-space: nowrap;
+}
 </style>
 </head>
 <body>
@@ -106,7 +113,7 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
     tbody.appendChild(tr);
   });
 
-  // ===== Conditional formatting =====
+  // ===== Conditional formatting for main sheet =====
   for(let i=4;i<tbody.rows.length;i+=4) tbody.rows[i].style.fontStyle="italic";
   const numbers = mainRows.flat().map(c=>parseFloat(c)).filter(v=>!isNaN(v));
   const minVal=Math.min(...numbers);
@@ -267,18 +274,26 @@ tbody tr:nth-child(4n+2) td { border-bottom:1px solid rgba(0,0,0,0.15); }
           tr.appendChild(td);
         });
 
-        // Conditional highlighting for columns 2 vs 3 and 6 vs 7
-        if (row.length > 2) {
-          if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
-          else tr.cells[1].style.backgroundColor = "#f28c8c";
-        }
-        if (row.length > 6) {
-          if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
-          else tr.cells[5].style.backgroundColor = "#f28c8c";
+        // Skip conditional formatting on rows 1,6,11,16… (0,5,10,15 zero-indexed)
+        const skipConditional = (rowIndex % 5 === 0);
+
+        if (!skipConditional) {
+          // Conditional highlighting for columns 2 vs 3
+          if (row.length > 2) {
+            if (row[1].trim() === row[2].trim()) tr.cells[1].style.backgroundColor = "lightgreen";
+            else tr.cells[1].style.backgroundColor = "#f28c8c";
+          }
+          // Conditional highlighting for columns 6 vs 7
+          if (row.length > 6) {
+            if (row[5].trim() === row[6].trim()) tr.cells[5].style.backgroundColor = "lightgreen";
+            else tr.cells[5].style.backgroundColor = "#f28c8c";
+          }
         }
 
-        // Highlight rows 1,6,11,16… (0-indexed: 0,5,10,15…)
-        if (rowIndex % 5 === 0) tr.style.backgroundColor = "#f2f2f2";
+        // Make rows 1,6,11,16… bold
+        if (skipConditional) {
+          tr.style.fontWeight = "bold";
+        }
 
         standingsTbody.appendChild(tr);
       });
